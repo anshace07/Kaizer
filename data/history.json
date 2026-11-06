@@ -1,0 +1,246 @@
+{
+  "synthetic": true,
+  "note": "Synthetic demo data. Not from a real factory.",
+  "history": [
+    {
+      "machine_id": "M-01",
+      "date": "2026-09-15",
+      "event_type": "breakdown",
+      "description": "Pressure dropped, inlet filter choked; filter replaced"
+    },
+    {
+      "machine_id": "M-01",
+      "date": "2026-10-20",
+      "event_type": "inspection",
+      "description": "Belt tension checked, OK"
+    },
+    {
+      "machine_id": "M-01",
+      "date": "2026-11-02",
+      "event_type": "complaint",
+      "description": "Worker reported loud knocking sound at start-up"
+    },
+    {
+      "machine_id": "M-02",
+      "date": "2026-09-22",
+      "event_type": "maintenance",
+      "description": "Fuel filter and oil changed"
+    },
+    {
+      "machine_id": "M-02",
+      "date": "2026-10-28",
+      "event_type": "complaint",
+      "description": "Black smoke during load test; injector cleaned"
+    },
+    {
+      "machine_id": "M-03",
+      "date": "2026-09-10",
+      "event_type": "breakdown",
+      "description": "Fan blade imbalance, vibration high; blade re-balanced"
+    },
+    {
+      "machine_id": "M-03",
+      "date": "2026-10-12",
+      "event_type": "inspection",
+      "description": "Gearbox oil level low, topped up"
+    },
+    {
+      "machine_id": "M-03",
+      "date": "2026-11-01",
+      "event_type": "complaint",
+      "description": "Rattling noise reported by night shift"
+    },
+    {
+      "machine_id": "M-04",
+      "date": "2026-09-18",
+      "event_type": "maintenance",
+      "description": "Spindle bearings greased"
+    },
+    {
+      "machine_id": "M-04",
+      "date": "2026-10-25",
+      "event_type": "complaint",
+      "description": "Coolant leak near chuck; hose clamp tightened"
+    },
+    {
+      "machine_id": "M-05",
+      "date": "2026-09-12",
+      "event_type": "breakdown",
+      "description": "Hydraulic hose burst, oil on floor; hose replaced"
+    },
+    {
+      "machine_id": "M-05",
+      "date": "2026-10-05",
+      "event_type": "inspection",
+      "description": "Pressure relief valve tested, OK"
+    },
+    {
+      "machine_id": "M-05",
+      "date": "2026-10-30",
+      "event_type": "complaint",
+      "description": "Slow ram return, oil temperature high"
+    },
+    {
+      "machine_id": "M-05",
+      "date": "2026-11-04",
+      "event_type": "complaint",
+      "description": "Small oil drip under cylinder"
+    },
+    {
+      "machine_id": "M-06",
+      "date": "2026-09-25",
+      "event_type": "breakdown",
+      "description": "Belt slipped off roller; realigned"
+    },
+    {
+      "machine_id": "M-06",
+      "date": "2026-10-22",
+      "event_type": "maintenance",
+      "description": "Rollers lubricated"
+    },
+    {
+      "machine_id": "M-07",
+      "date": "2026-09-14",
+      "event_type": "breakdown",
+      "description": "Heater band failure; replaced"
+    },
+    {
+      "machine_id": "M-07",
+      "date": "2026-10-18",
+      "event_type": "complaint",
+      "description": "Barrel overheating alarm twice in one shift"
+    },
+    {
+      "machine_id": "M-07",
+      "date": "2026-11-03",
+      "event_type": "inspection",
+      "description": "Thermocouple checked, reading drift found"
+    },
+    {
+      "machine_id": "M-08",
+      "date": "2026-09-28",
+      "event_type": "maintenance",
+      "description": "Exhaust filters replaced"
+    },
+    {
+      "machine_id": "M-08",
+      "date": "2026-10-26",
+      "event_type": "complaint",
+      "description": "Strong solvent smell near booth; damper found half closed"
+    },
+    {
+      "machine_id": "M-09",
+      "date": "2026-09-09",
+      "event_type": "inspection",
+      "description": "Refractory lining checked, minor cracks noted"
+    },
+    {
+      "machine_id": "M-09",
+      "date": "2026-10-15",
+      "event_type": "breakdown",
+      "description": "Burner flame failure; igniter replaced"
+    },
+    {
+      "machine_id": "M-09",
+      "date": "2026-11-05",
+      "event_type": "complaint",
+      "description": "Outer casing very hot near door"
+    },
+    {
+      "machine_id": "M-10",
+      "date": "2026-09-20",
+      "event_type": "maintenance",
+      "description": "Torch tip and cables replaced"
+    },
+    {
+      "machine_id": "M-10",
+      "date": "2026-10-29",
+      "event_type": "complaint",
+      "description": "Sparks from cable joint, not from torch; joint re-taped"
+    },
+    {
+      "machine_id": "M-11",
+      "date": "2026-09-16",
+      "event_type": "inspection",
+      "description": "Agitator seal checked, OK"
+    },
+    {
+      "machine_id": "M-11",
+      "date": "2026-10-10",
+      "event_type": "complaint",
+      "description": "Chemical smell near vent valve; gasket replaced"
+    },
+    {
+      "machine_id": "M-11",
+      "date": "2026-11-02",
+      "event_type": "inspection",
+      "description": "Gas detector calibrated"
+    },
+    {
+      "machine_id": "M-12",
+      "date": "2026-09-30",
+      "event_type": "breakdown",
+      "description": "Sealing jaw jam; cleaned"
+    },
+    {
+      "machine_id": "M-12",
+      "date": "2026-10-24",
+      "event_type": "maintenance",
+      "description": "Sensors cleaned and aligned"
+    },
+    {
+      "machine_id": "M-13",
+      "date": "2026-09-11",
+      "event_type": "inspection",
+      "description": "Thermal scan: one busbar joint warm"
+    },
+    {
+      "machine_id": "M-13",
+      "date": "2026-10-19",
+      "event_type": "breakdown",
+      "description": "MCB tripped repeatedly; loose terminal tightened"
+    },
+    {
+      "machine_id": "M-13",
+      "date": "2026-11-04",
+      "event_type": "complaint",
+      "description": "Burning plastic smell near panel"
+    },
+    {
+      "machine_id": "M-14",
+      "date": "2026-09-13",
+      "event_type": "maintenance",
+      "description": "Mechanical seal replaced"
+    },
+    {
+      "machine_id": "M-14",
+      "date": "2026-10-08",
+      "event_type": "complaint",
+      "description": "High vibration on motor side; coupling realigned"
+    },
+    {
+      "machine_id": "M-14",
+      "date": "2026-10-27",
+      "event_type": "breakdown",
+      "description": "Pump tripped on overload, motor hot"
+    },
+    {
+      "machine_id": "M-14",
+      "date": "2026-11-05",
+      "event_type": "complaint",
+      "description": "Water leak from gland"
+    },
+    {
+      "machine_id": "M-15",
+      "date": "2026-09-24",
+      "event_type": "maintenance",
+      "description": "Grinding wheel dressed and balanced"
+    },
+    {
+      "machine_id": "M-15",
+      "date": "2026-10-31",
+      "event_type": "complaint",
+      "description": "Abnormal screeching noise during feed"
+    }
+  ]
+}

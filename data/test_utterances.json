@@ -1,0 +1,40 @@
+{
+  "synthetic": true,
+  "note": "Synthetic worker reports written for testing. Not recorded from real people.",
+  "incident_types": ["smoke_overheating", "gas_leak", "sparks_fire", "vibration_noise", "fluid_leak", "high_temperature"],
+  "severity_levels": ["low", "medium", "high", "critical"],
+  "utterances": [
+    {"id": "u01", "category": "critical", "language": "hinglish", "text": "Machine chaudah se dhuaan nikal raha hai, jaldi koi aao!", "expected": {"machine_id": "M-14", "incident_type": "smoke_overheating", "severity": "critical"}},
+    {"id": "u02", "category": "critical", "language": "hindi", "text": "मशीन ग्यारह के पास गैस की बहुत तेज़ बदबू आ रही है।", "expected": {"machine_id": "M-11", "incident_type": "gas_leak", "severity": "critical"}},
+    {"id": "u03", "category": "critical", "language": "hinglish", "text": "LT panel mein sparks aa rahe hain, chingari dikh rahi hai, M13 ke paas.", "expected": {"machine_id": "M-13", "incident_type": "sparks_fire", "severity": "critical"}},
+    {"id": "u04", "category": "critical", "language": "english", "text": "There is fire near machine nine, the heat treatment furnace. Please send the fire team.", "expected": {"machine_id": "M-09", "incident_type": "sparks_fire", "severity": "critical"}},
+    {"id": "u05", "category": "critical", "language": "hinglish", "text": "Generator se kaala dhuan aa raha hai, machine do, bahut zyada.", "expected": {"machine_id": "M-02", "incident_type": "smoke_overheating", "severity": "critical"}},
+    {"id": "u06", "category": "critical", "language": "hinglish", "text": "Mixing tank ke paas chemical smell hai, sabki aankhon mein jalan ho rahi hai.", "expected": {"machine_id": "M-11", "incident_type": "gas_leak", "severity": "critical"}},
+
+    {"id": "u07", "category": "ambiguous", "language": "hinglish", "text": "Machine chaudah ya chalis, pata nahi, bahut awaaz kar rahi hai.", "expected": {"machine_id": null, "incident_type": "vibration_noise", "severity": "medium"}},
+    {"id": "u08", "category": "ambiguous", "language": "hinglish", "text": "Yahan neeche oil gir raha hai, jaldi dekho.", "expected": {"machine_id": null, "incident_type": "fluid_leak", "severity": "medium"}},
+    {"id": "u09", "category": "ambiguous", "language": "hinglish", "text": "Woh wali machine phir se garam ho rahi hai.", "expected": {"machine_id": null, "incident_type": "high_temperature", "severity": "high"}},
+    {"id": "u10", "category": "ambiguous", "language": "english", "text": "One of the machines near the gate is shaking a lot.", "expected": {"machine_id": null, "incident_type": "vibration_noise", "severity": "medium"}},
+    {"id": "u11", "category": "ambiguous", "language": "hinglish", "text": "Teen ya terah number, ek machine se paani leak ho raha hai.", "expected": {"machine_id": null, "incident_type": "fluid_leak", "severity": "medium"}},
+
+    {"id": "u12", "category": "normal", "language": "hinglish", "text": "Machine paanch ke neeche se thoda oil tapak raha hai.", "expected": {"machine_id": "M-05", "incident_type": "fluid_leak", "severity": "low"}},
+    {"id": "u13", "category": "normal", "language": "hinglish", "text": "Compressor start hote time khat khat ki awaaz kar raha hai.", "expected": {"machine_id": "M-01", "incident_type": "vibration_noise", "severity": "medium"}},
+    {"id": "u14", "category": "normal", "language": "english", "text": "Machine seven barrel temperature is going above normal again.", "expected": {"machine_id": "M-07", "incident_type": "high_temperature", "severity": "high"}},
+    {"id": "u15", "category": "normal", "language": "hindi", "text": "कूलिंग टावर का पंखा बहुत हिल रहा है, आवाज़ भी आ रही है।", "expected": {"machine_id": "M-03", "incident_type": "vibration_noise", "severity": "medium"}},
+    {"id": "u16", "category": "normal", "language": "hinglish", "text": "14 number wali machine ke gland se paani leak ho raha hai.", "expected": {"machine_id": "M-14", "incident_type": "fluid_leak", "severity": "medium"}},
+    {"id": "u17", "category": "normal", "language": "english", "text": "The grinder on machine fifteen is making a screeching noise.", "expected": {"machine_id": "M-15", "incident_type": "vibration_noise", "severity": "medium"}},
+    {"id": "u18", "category": "normal", "language": "hinglish", "text": "Bhatti ka darwaza bahut garam hai, haath nahi laga sakte.", "expected": {"machine_id": "M-09", "incident_type": "high_temperature", "severity": "high"}},
+    {"id": "u19", "category": "normal", "language": "hindi", "text": "मशीन चार में कूलेंट लीक हो रहा है।", "expected": {"machine_id": "M-04", "incident_type": "fluid_leak", "severity": "low"}},
+    {"id": "u20", "category": "normal", "language": "hinglish", "text": "Conveyor belt line pe vibration bahut zyada hai aaj.", "expected": {"machine_id": "M-06", "incident_type": "vibration_noise", "severity": "medium"}},
+    {"id": "u21", "category": "normal", "language": "english", "text": "Hydraulic press oil is very hot and the ram is slow.", "expected": {"machine_id": "M-05", "incident_type": "high_temperature", "severity": "high"}},
+    {"id": "u22", "category": "normal", "language": "hinglish", "text": "M12 packing machine mein ajeeb awaaz aa rahi hai.", "expected": {"machine_id": "M-12", "incident_type": "vibration_noise", "severity": "low"}},
+    {"id": "u23", "category": "normal", "language": "hinglish", "text": "Boiler pump ki motor bahut garam ho gayi hai.", "expected": {"machine_id": "M-14", "incident_type": "high_temperature", "severity": "high"}},
+    {"id": "u24", "category": "normal", "language": "hindi", "text": "मशीन आठ का ब्लोअर बहुत ज़ोर से आवाज़ कर रहा है।", "expected": {"machine_id": "M-08", "incident_type": "vibration_noise", "severity": "medium"}},
+    {"id": "u25", "category": "normal", "language": "english", "text": "Small water leak at the cooling tower, machine three.", "expected": {"machine_id": "M-03", "incident_type": "fluid_leak", "severity": "low"}},
+    {"id": "u26", "category": "normal", "language": "hinglish", "text": "Machine das ka welding robot thoda vibrate kar raha hai.", "expected": {"machine_id": "M-10", "incident_type": "vibration_noise", "severity": "low"}},
+    {"id": "u27", "category": "normal", "language": "hinglish", "text": "Generator ka temperature high dikha raha hai display pe.", "expected": {"machine_id": "M-02", "incident_type": "high_temperature", "severity": "high"}},
+    {"id": "u28", "category": "normal", "language": "hinglish", "text": "Moulding machine ke neeche hydraulic oil leak hai, floor pe phail raha hai.", "expected": {"machine_id": "M-07", "incident_type": "fluid_leak", "severity": "medium"}},
+    {"id": "u29", "category": "normal", "language": "english", "text": "Machine one compressor is vibrating more than usual.", "expected": {"machine_id": "M-01", "incident_type": "vibration_noise", "severity": "medium"}},
+    {"id": "u30", "category": "normal", "language": "hindi", "text": "मशीन पंद्रह बहुत गरम चल रही है।", "expected": {"machine_id": "M-15", "incident_type": "high_temperature", "severity": "high"}}
+  ]
+}

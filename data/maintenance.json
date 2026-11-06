@@ -1,0 +1,81 @@
+{
+  "synthetic": true,
+  "note": "Synthetic demo data. Not from a real factory.",
+  "maintenance": [
+    {
+      "machine_id": "M-01",
+      "last_service": "2026-08-20",
+      "next_service": "2026-11-20"
+    },
+    {
+      "machine_id": "M-02",
+      "last_service": "2026-09-22",
+      "next_service": "2026-12-22"
+    },
+    {
+      "machine_id": "M-03",
+      "last_service": "2026-07-30",
+      "next_service": "2026-10-30"
+    },
+    {
+      "machine_id": "M-04",
+      "last_service": "2026-09-18",
+      "next_service": "2026-12-18"
+    },
+    {
+      "machine_id": "M-05",
+      "last_service": "2026-08-12",
+      "next_service": "2026-11-12"
+    },
+    {
+      "machine_id": "M-06",
+      "last_service": "2026-10-22",
+      "next_service": "2027-01-22"
+    },
+    {
+      "machine_id": "M-07",
+      "last_service": "2026-08-01",
+      "next_service": "2026-11-01"
+    },
+    {
+      "machine_id": "M-08",
+      "last_service": "2026-09-28",
+      "next_service": "2026-12-28"
+    },
+    {
+      "machine_id": "M-09",
+      "last_service": "2026-08-15",
+      "next_service": "2026-11-15"
+    },
+    {
+      "machine_id": "M-10",
+      "last_service": "2026-09-20",
+      "next_service": "2026-12-20"
+    },
+    {
+      "machine_id": "M-11",
+      "last_service": "2026-10-10",
+      "next_service": "2027-01-10"
+    },
+    {
+      "machine_id": "M-12",
+      "last_service": "2026-10-24",
+      "next_service": "2027-01-24"
+    },
+    {
+      "machine_id": "M-13",
+      "last_service": "2026-07-25",
+      "next_service": "2026-10-25"
+    },
+    {
+      "machine_id": "M-14",
+      "last_service": "2026-09-13",
+      "next_service": "2026-11-13"
+    },
+    {
+      "machine_id": "M-15",
+      "last_service": "2026-09-24",
+      "next_service": "2026-12-24"
+    }
+  ]
+}

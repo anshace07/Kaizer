@@ -1,0 +1,78 @@
+{
+  "synthetic": true,
+  "note": "Synthetic demo data. Not from a real factory.",
+  "tickets": [
+    {
+      "id": "TKT-501",
+      "machine_id": "M-01",
+      "title": "Investigate knocking sound at start-up",
+      "priority": "medium",
+      "status": "open",
+      "opened_on": "2026-11-02",
+      "assigned_team": "Mechanical"
+    },
+    {
+      "id": "TKT-502",
+      "machine_id": "M-03",
+      "title": "Re-check fan blade balance, rattling reported",
+      "priority": "medium",
+      "status": "open",
+      "opened_on": "2026-11-01",
+      "assigned_team": "Mechanical"
+    },
+    {
+      "id": "TKT-503",
+      "machine_id": "M-05",
+      "title": "Oil drip under main cylinder",
+      "priority": "high",
+      "status": "open",
+      "opened_on": "2026-11-04",
+      "assigned_team": "Hydraulics"
+    },
+    {
+      "id": "TKT-504",
+      "machine_id": "M-07",
+      "title": "Replace drifting barrel thermocouple",
+      "priority": "medium",
+      "status": "open",
+      "opened_on": "2026-11-03",
+      "assigned_team": "Instrumentation"
+    },
+    {
+      "id": "TKT-505",
+      "machine_id": "M-09",
+      "title": "Furnace door casing overheating",
+      "priority": "high",
+      "status": "open",
+      "opened_on": "2026-11-05",
+      "assigned_team": "Mechanical"
+    },
+    {
+      "id": "TKT-506",
+      "machine_id": "M-13",
+      "title": "Burning smell near LT panel, thermal scan needed",
+      "priority": "high",
+      "status": "open",
+      "opened_on": "2026-11-04",
+      "assigned_team": "Electrical"
+    },
+    {
+      "id": "TKT-507",
+      "machine_id": "M-14",
+      "title": "Gland leak on boiler feed pump",
+      "priority": "medium",
+      "status": "open",
+      "opened_on": "2026-11-05",
+      "assigned_team": "Mechanical"
+    },
+    {
+      "id": "TKT-508",
+      "machine_id": "M-15",
+      "title": "Screeching noise during feed",
+      "priority": "low",
+      "status": "open",
+      "opened_on": "2026-10-31",
+      "assigned_team": "Mechanical"
+    }
+  ]
+}
