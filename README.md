@@ -28,10 +28,24 @@ Open http://localhost:8000/docs to try every endpoint.
 
 Wipe and re-seed the database: `.venv\Scripts\python -m app.seed`
 
+## Run the frontend
+
+First time only: `cd frontend` then `npm install`.
+
+Start it — **one command**, from `frontend/`:
+
+```powershell
+npm run dev
+```
+
+Open http://localhost:3000.
+
+**Run both together:** open two terminals — start the backend in `backend/` (command above), then `npm run dev` in `frontend/`.
+
 ## Repo layout
 
 - `backend/` — FastAPI + SQLAlchemy + SQLite (port 8000)
-- `frontend/` — Next.js dashboard (port 3000, coming in a later phase)
+- `frontend/` — Next.js dashboard (port 3000)
 - `data/` — synthetic machines, history, tickets, maintenance dates, safety manual (`sop.md`), test utterances
 - `eval/` — evaluation scripts and results (later phase)
 - `design/mockup.png` — UI layout and colour reference only

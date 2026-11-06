@@ -1,0 +1,153 @@
+"use client";
+
+import { useCallback, useState } from "react";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { BookOpen, Bot } from "lucide-react";
+import { api, type Status } from "@/lib/api";
+import { capitalize, formatConfidence, formatDateTime, typeLabel } from "@/lib/format";
+import { useAutoRefresh } from "@/lib/use-auto-refresh";
+import { SeverityBadge, StatusBadge } from "@/components/badges";
+import { EmptyState } from "@/components/empty-state";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+// Selected tab = white with purple text, so it stands out on the lavender page.
+const tabClass = "px-3 data-active:bg-white data-active:text-[#6d4ae8]";
+
+const ACTIONS: { status: Status; label: string }[] = [
+  { status: "acknowledged", label: "Acknowledge" },
+  { status: "in_progress", label: "In Progress" },
+  { status: "resolved", label: "Resolve" },
+];
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-[140px_1fr] gap-2 border-b py-2.5 text-sm last:border-0">
+      <span className="text-slate-500">{label}</span>
+      <span className="font-medium">{children}</span>
+    </div>
+  );
+}
+
+export default function IncidentDetailPage() {
+  const { id } = useParams<{ id: string }>();
+  const load = useCallback(() => api.incident(id), [id]);
+  const { data: inc, error, reload } = useAutoRefresh(load, 5000);
+  const [busy, setBusy] = useState(false);
+
+  // The backend changes the status AND writes a timeline event in one call.
+  async function changeStatus(status: Status) {
+    setBusy(true);
+    try {
+      await api.setStatus(id, status, "by supervisor (dashboard)");
+      await reload();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (error) return <p className="text-sm text-red-700">{error}</p>;
+  if (!inc) return <p className="text-sm">Loading…</p>;
+
+  return (
+    <div className="space-y-5">
+      <p className="text-sm text-slate-500">
+        <Link href="/incidents" className="hover:underline">
+          Incidents
+        </Link>{" "}
+        › {inc.id}
+      </p>
+
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-semibold">Incident {inc.id}</h1>
+            <SeverityBadge severity={inc.severity} />
+            <StatusBadge status={inc.status} />
+          </div>
+          <p className="text-sm text-slate-500">Reported {formatDateTime(inc.created_at)}</p>
+        </div>
+        <div className="flex gap-2">
+          {ACTIONS.map((a) => (
+            <Button
+              key={a.status}
+              variant={a.status === "resolved" ? "default" : "outline"}
+              disabled={busy || inc.status === a.status}
+              onClick={() => changeStatus(a.status)}
+            >
+              {a.label}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <Tabs defaultValue="overview">
+        <TabsList>
+          <TabsTrigger value="overview" className={tabClass}>Overview</TabsTrigger>
+          <TabsTrigger value="investigation" className={tabClass}>AI Investigation</TabsTrigger>
+          <TabsTrigger value="sop" className={tabClass}>SOP &amp; Actions</TabsTrigger>
+          <TabsTrigger value="timeline" className={tabClass}>Timeline</TabsTrigger>
+        </TabsList>
+
+        <Card className="mt-2">
+          <CardContent>
+            <TabsContent value="overview">
+              <Field label="Machine ID">{inc.machine_id ?? "—"}</Field>
+              <Field label="Incident">{typeLabel(inc.incident_type)}</Field>
+              <Field label="Location">{inc.location ?? "—"}</Field>
+              <Field label="Severity">
+                <SeverityBadge severity={inc.severity} />
+              </Field>
+              <Field label="Symptoms">{inc.symptoms.length ? inc.symptoms.join(", ") : "—"}</Field>
+              <Field label="Language">{capitalize(inc.language)}</Field>
+              <Field label="Confidence">{formatConfidence(inc.confidence)}</Field>
+              <Field label="Related incident">
+                {inc.related_incident_id ? (
+                  <Link href={`/incidents/${inc.related_incident_id}`} className="text-[#6d4ae8] hover:underline">
+                    {inc.related_incident_id}
+                  </Link>
+                ) : (
+                  "—"
+                )}
+              </Field>
+              <Field label="Transcript">
+                <span className="font-normal italic">“{inc.transcript || "—"}”</span>
+              </Field>
+            </TabsContent>
+
+            <TabsContent value="investigation">
+              <EmptyState
+                icon={Bot}
+                title="No AI investigation yet"
+                text="Machine history checks and AI recommendations will appear here once the reasoning step is added."
+              />
+            </TabsContent>
+
+            <TabsContent value="sop">
+              <EmptyState
+                icon={BookOpen}
+                title="No SOP matched yet"
+                text="The relevant safety-manual section and recommended actions will appear here."
+              />
+            </TabsContent>
+
+            <TabsContent value="timeline">
+              <ol className="relative ml-2 border-l border-violet-200">
+                {inc.events.map((ev, i) => (
+                  <li key={i} className="mb-4 ml-4">
+                    <span className="absolute -left-1.5 mt-1.5 size-3 rounded-full bg-[#6d4ae8]" />
+                    <p className="text-xs text-slate-500">{formatDateTime(ev.timestamp)}</p>
+                    <p className="text-sm font-medium">{capitalize(ev.action.replace("_", " "))}</p>
+                    <p className="text-sm text-slate-600">{ev.detail}</p>
+                  </li>
+                ))}
+              </ol>
+            </TabsContent>
+          </CardContent>
+        </Card>
+      </Tabs>
+    </div>
+  );
+}

@@ -132,5 +132,6 @@ def stats(db: Session = Depends(get_db)):
         "critical_unresolved": sum(1 for i in unresolved if i.severity == "critical"),
         "by_status": Counter(i.status for i in incidents),
         "by_severity": Counter(i.severity for i in incidents),
+        "unresolved_by_severity": Counter(i.severity for i in unresolved),  # dashboard Critical / High cards
         "by_type": Counter(i.incident_type for i in incidents),
     }
