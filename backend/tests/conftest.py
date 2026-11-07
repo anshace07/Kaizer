@@ -12,7 +12,7 @@ from app.db import Base, get_db
 @pytest.fixture(autouse=True)
 def no_real_llm(monkeypatch):
     """Any un-mocked LLM call fails like an outage instead of going over the network."""
-    def blocked():
+    def blocked(*args, **kwargs):
         raise llm.LLMError("real LLM is blocked in tests")
     monkeypatch.setattr(llm, "_client", blocked)
 

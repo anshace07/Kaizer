@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from .. import keyword_extractor, llm
 from ..safety import rules
+from .announce import spoken_question
 
 INCIDENT_TYPES = ["smoke", "gas_leak", "sparks_fire", "vibration", "noise", "oil_leak", "overheating", "other"]
 IncidentType = Literal["smoke", "gas_leak", "sparks_fire", "vibration", "noise", "oil_leak", "overheating", "other"]
@@ -194,6 +195,8 @@ def analyse(transcript: str, machines: list[dict]) -> dict:
         "extractor": extractor,
         "fallback_reason": fallback_reason,
         "rule_hits": hits,
+        # Devanagari version for the voice; the screen shows the LLM's Hinglish question
+        "spoken_question": spoken_question(extraction.machine_candidates) if extraction.confirmation_required else None,
         "severity": severity,
         "severity_decided_by": decided_by,
         "llm_ms": llm_ms,

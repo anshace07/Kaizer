@@ -80,6 +80,17 @@ def test_audio_path_rejects_bad_ids():
     assert tts.audio_path("../../.env") is None
 
 
+# ---------- spoken (Devanagari) versions ----------
+
+def test_spoken_acknowledgement_is_devanagari_with_english_words():
+    assert announce.acknowledgement_spoken(incident()) == "Report मिल गया। Machine 14 पर धुआं — Critical alert भेज दिया गया है।"
+
+
+def test_spoken_question_from_candidates():
+    assert announce.spoken_question(["M-14", "M-40"]) == "क्या आपने Machine 14 या Machine 40 कहा?"
+    assert announce.spoken_question([]) == "कौन सी machine है? Machine का number बताइए।"
+
+
 # ---------- handover summary ----------
 
 def add(factory, *incidents):
@@ -89,25 +100,40 @@ def add(factory, *incidents):
         db.commit()
 
 
+def fake_summary(monkeypatch, summary, spoken):
+    calls = []
+
+    def chat_json(messages, **kwargs):
+        calls.append(kwargs)
+        return {"summary": summary, "spoken": spoken, "_llm_ms": 5}
+    monkeypatch.setattr(llm, "chat_json", chat_json)
+    return calls
+
+
 def test_handover_uses_llm_summary_when_valid(monkeypatch, session_factory):
     add(session_factory, incident(), incident("M-06", "vibration", "medium", "INC-3002"))
     text = "Do open incidents. Machine 14 par dhuan, critical. Machine 6 par vibration, medium."
-    monkeypatch.setattr(llm, "chat_json", lambda messages: {"summary": text, "_llm_ms": 5})
+    spoken = "दो open incidents हैं। Machine 14 पर धुआं, critical। Machine 6 पर vibration, medium।"
+    calls = fake_summary(monkeypatch, text, spoken)
     with session_factory() as db:
         result = announce.handover_summary(db)
-    assert result["text"] == text and result["summary_by"].startswith("llm:")
+    assert (result["text"], result["spoken"]) == (text, spoken) and result["summary_by"].startswith("llm:")
     assert result["incident_ids"] == ["INC-3001", "INC-3002"]  # critical first
+    assert calls[0] == {"timeout": 35, "retry_on_timeout": True}
 
 
-def test_handover_rejects_invented_machine_or_too_long(monkeypatch, session_factory):
+def test_handover_rejects_bad_llm_output(monkeypatch, session_factory):
     add(session_factory, incident())
     with session_factory() as db:
-        monkeypatch.setattr(llm, "chat_json", lambda m: {"summary": "Machine 14 aur Machine 9 par dhuan."})
+        fake_summary(monkeypatch, "Machine 14 aur Machine 9 par dhuan.", "Machine 14 और Machine 9 पर धुआं।")
         invented = announce.handover_summary(db)
-        monkeypatch.setattr(llm, "chat_json", lambda m: {"summary": "Machine 14 " + "bahut " * 70})
+        fake_summary(monkeypatch, "Machine 14 " + "bahut " * 70, "Machine 14 पर धुआं।")
         too_long = announce.handover_summary(db)
+        fake_summary(monkeypatch, "Machine 14 par dhuan.", "Machine 14 par dhuan.")  # spoken not Devanagari
+        latin_spoken = announce.handover_summary(db)
     assert invented["summary_by"] == "template" and "Machine 9" in invented["fallback_reason"]
     assert too_long["summary_by"] == "template" and too_long["word_count"] <= 60
+    assert latin_spoken["summary_by"] == "template" and "Devanagari" in latin_spoken["fallback_reason"]
 
 
 def test_handover_template_when_llm_down_skips_resolved(session_factory):
@@ -117,14 +143,37 @@ def test_handover_template_when_llm_down_skips_resolved(session_factory):
         result = announce.handover_summary(db)  # conftest blocks the real LLM
     assert result["summary_by"] == "template"
     assert result["text"] == "Abhi 2 open incidents hain. Machine 14 par dhuan, critical. Machine 6 par ajeeb awaaz, low."
+    assert result["spoken"] == "अभी 2 open incidents हैं। Machine 14 पर धुआं, critical। Machine 6 पर अजीब आवाज़, low।"
 
 
-def test_template_groups_repeats_and_keeps_whole_sentences(session_factory):
+def test_template_groups_repeats_and_keeps_whole_sentences():
     many = [incident(iid=f"INC-40{n:02d}") for n in range(5)]  # 5 x Machine 14 smoke critical
     many += [incident(f"M-{n:02d}", "noise", "low", f"INC-41{n:02d}") for n in range(1, 13)]
-    text = announce.template_summary(many)
-    assert "Machine 14 par dhuan, critical — 5 reports." in text
+    text, spoken = announce.template_summary(many)
+    assert "Machine 14 par dhuan, critical — 5 reports." in text and "Machine 14 पर धुआं, critical — 5 reports।" in spoken
     assert len(text.split()) <= 60 and text.endswith("Baaki list screen par hai.")
+    assert spoken.endswith("बाकी list screen पर है।")
+
+
+def test_llm_retries_once_on_timeout(monkeypatch):
+    import httpx
+    from openai import APITimeoutError
+    attempts = []
+
+    class Completions:
+        def create(self, **kwargs):
+            attempts.append(1)
+            if len(attempts) == 1:
+                raise APITimeoutError(request=httpx.Request("POST", "http://x"))
+            msg = type("M", (), {"content": '{"summary": "ok"}'})
+            return type("R", (), {"choices": [type("C", (), {"message": msg})]})
+
+    class Client:
+        chat = type("Chat", (), {"completions": Completions()})
+    monkeypatch.setattr(llm, "_client", lambda timeout=20: Client())
+    monkeypatch.setenv("LLM_MODEL", "fake")
+    assert llm.chat_json([{"role": "user", "content": "x"}], timeout=35, retry_on_timeout=True)["summary"] == "ok"
+    assert len(attempts) == 2
 
 
 # ---------- endpoints ----------
@@ -135,6 +184,8 @@ def test_announce_endpoint_speaks_template(monkeypatch, client):
                                                   "severity": "critical", "transcript": "Machine 14 mein dhuan"}).json()
     res = client.post(f"/api/incidents/{created['id']}/announce").json()
     assert res["text"] == "Report mil gaya. Machine 14 par dhuan — Critical alert bhej diya gaya hai."
+    assert res["spoken_text"] == "Report मिल गया। Machine 14 पर धुआं — Critical alert भेज दिया गया है।"
+    assert FakeTimbre.calls[-1]["text"] == res["spoken_text"]  # Timbre got the Devanagari version
     assert client.get(res["audio_url"]).content == b"RIFF-fake-wav"
 
 

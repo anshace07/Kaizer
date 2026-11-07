@@ -20,7 +20,7 @@ from gnani.tts.exceptions import APIError, GnaniTTSError
 
 from ..db import BACKEND_DIR
 
-MODEL = "timbre-v2.5"
+DEFAULT_MODEL = "timbre-v2.5"
 LANGUAGE = "hi-IN"
 DEFAULT_VOICE = "Urmila"
 SPEED = 1.0
@@ -43,6 +43,10 @@ def voice() -> str:
     return os.getenv("TTS_VOICE") or DEFAULT_VOICE
 
 
+def model() -> str:
+    return os.getenv("TTS_MODEL") or DEFAULT_MODEL
+
+
 def spoken_text(text: str) -> str:
     """CLAUDE.md: say "Machine 14", never "M-14" (also catches M14 / M-04 written by an LLM)."""
     text = re.sub(r"\bM-?0*(\d{1,2})\b", lambda m: f"Machine {int(m.group(1))}", text)
@@ -50,7 +54,7 @@ def spoken_text(text: str) -> str:
 
 
 def audio_id_for(text: str) -> str:
-    key = f"{MODEL}|{voice()}|{LANGUAGE}|{SPEED}|{AUDIO_CONFIG['sample_rate']}|{text}"
+    key = f"{model()}|{voice()}|{LANGUAGE}|{SPEED}|{AUDIO_CONFIG['sample_rate']}|{text}"
     return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
 
@@ -107,12 +111,18 @@ def speak(text: str) -> dict:
         return _synthesize(text, audio_id, key)
 
 
+def synthesize(text: str, key: str, model_name: str, voice_name: str) -> bytes:
+    """One real Timbre call -> WAV bytes with a correct header. Raises GnaniTTSError / ValueError."""
+    client = GnaniTTSClient(api_key=key, timeout=TIMEOUT_SECONDS)
+    audio = client.synthesize(text, voice=voice_name, model=model_name, language=LANGUAGE, speed=SPEED,
+                              audio_config=AudioConfig(**AUDIO_CONFIG))
+    return fix_wav_header(audio) if audio else audio
+
+
 def _synthesize(text: str, audio_id: str, key: str) -> dict:
     started = time.perf_counter()
     try:
-        client = GnaniTTSClient(api_key=key, timeout=TIMEOUT_SECONDS)
-        audio = client.synthesize(text, voice=voice(), model=MODEL, language=LANGUAGE, speed=SPEED,
-                                  audio_config=AudioConfig(**AUDIO_CONFIG))
+        audio = synthesize(text, key, model(), voice())
     except (GnaniTTSError, ValueError, OSError) as e:
         log.warning("TTS failed after %s ms: %s", round((time.perf_counter() - started) * 1000), type(e).__name__)
         raise TTSError(_error_message(e)) from e
@@ -120,9 +130,8 @@ def _synthesize(text: str, audio_id: str, key: str) -> dict:
     if not audio:
         raise TTSError("Timbre returned no audio.")
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    audio = fix_wav_header(audio)
     (CACHE_DIR / f"{audio_id}.wav").write_bytes(audio)
-    log.info("TTS Timbre call (%s, %s) in %s ms, %s bytes", voice(), MODEL, tts_ms, len(audio))
+    log.info("TTS Timbre call (%s, %s) in %s ms, %s bytes", voice(), model(), tts_ms, len(audio))
     return {"audio_id": audio_id, "cached": False, "tts_ms": tts_ms, "text": text}
 
 

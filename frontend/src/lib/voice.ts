@@ -74,14 +74,14 @@ export function play(speech: Speech) {
 
 let lastAsked = { text: "", at: 0 };
 
-/** Ask the backend to speak `text` (Timbre, cached), then play it. Never throws. */
-export async function say(text: string) {
+/** Ask the backend to speak `text` (Timbre, cached), then play it, showing `display` on screen. Never throws. */
+export async function say(text: string, display: string = text) {
   // React dev mode runs effects twice; don't ask for the same sentence twice in a row.
   if (text === lastAsked.text && Date.now() - lastAsked.at < 3000) return;
   lastAsked = { text, at: Date.now() };
   try {
-    play(await api.tts(text));
+    play({ ...(await api.tts(text)), text: display });
   } catch {
-    play({ text, audio_url: null, cached: false, tts_ms: null, tts_error: "Voice unavailable" });
+    play({ text: display, audio_url: null, cached: false, tts_ms: null, tts_error: "Voice unavailable" });
   }
 }

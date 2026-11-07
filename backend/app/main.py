@@ -25,7 +25,6 @@ from .services import announce, audio, extract, stt, tts
 load_dotenv(BACKEND_DIR / ".env")
 
 STT_MODEL = stt.MODEL
-TTS_MODEL = tts.MODEL
 
 
 @asynccontextmanager
@@ -81,7 +80,7 @@ def health():
         "status": "ok",
         "data": "synthetic",
         "stt_model": STT_MODEL,
-        "tts_model": TTS_MODEL,
+        "tts_model": tts.model(),
         "tts_voice": tts.voice(),
         "llm_model": llm.model_name(),
     }
@@ -134,10 +133,12 @@ def list_incidents(status: Status | None = None, severity: Severity | None = Non
     return q.order_by(Incident.created_at.desc()).all()
 
 
-def speech(text: str) -> dict:
-    """Text + (if Timbre worked) a URL to its audio. Never raises: the UI always shows the text."""
-    result = tts.try_speak(text)
-    return {"text": result["text"], "audio_url": f"/api/tts/{result['audio_id']}" if result["audio_id"] else None,
+def speech(text: str, spoken: str | None = None) -> dict:
+    """Screen `text` + (if Timbre worked) a URL to the audio of `spoken` (Devanagari version, if given).
+    Never raises: the UI always shows the text."""
+    result = tts.try_speak(spoken or text)
+    return {"text": text, "spoken_text": result["text"],
+            "audio_url": f"/api/tts/{result['audio_id']}" if result["audio_id"] else None,
             "cached": result["cached"], "tts_ms": result["tts_ms"], "tts_error": result["error"]}
 
 
@@ -158,14 +159,15 @@ def tts_audio(audio_id: str):
 @app.post("/api/incidents/{incident_id}/announce")
 def announce_incident(incident_id: str, db: Session = Depends(get_db)):
     """Spoken acknowledgement from a FIXED template (no LLM): 'Report mil gaya. Machine 14 par dhuan — ...'"""
-    return speech(announce.acknowledgement_text(get_incident_or_404(db, incident_id)))
+    inc = get_incident_or_404(db, incident_id)
+    return speech(announce.acknowledgement_text(inc), announce.acknowledgement_spoken(inc))
 
 
 @app.post("/api/handover/summary")
 def handover_summary(db: Session = Depends(get_db)):
     """LLM writes a <=60-word Hinglish summary of open incidents (template if it fails), then Timbre speaks it."""
     summary = announce.handover_summary(db)
-    return {**summary, **speech(summary["text"])}
+    return {**summary, **speech(summary["text"], summary["spoken"])}
 
 
 def machine_list(db: Session) -> list[dict]:

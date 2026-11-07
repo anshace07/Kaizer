@@ -36,10 +36,12 @@ export function ConfirmDetails({ analysis, machines, onBack, onCreated }: Props)
   const machineSelect = useRef<HTMLSelectElement>(null);
 
   // Speak the confirmation question once when this screen opens (text is on screen regardless).
+  // The voice says the Devanagari version; the screen shows the Hinglish one.
   const question = ex.confirmation_required ? ex.confirmation_question : null;
+  const spokenQuestion = analysis.spoken_question;
   useEffect(() => {
-    if (question) say(question);
-  }, [question]);
+    if (question) say(spokenQuestion ?? question, question);
+  }, [question, spokenQuestion]);
 
   const ruleLocked = analysis.rule_hits.length > 0; // a safety rule fired -> Critical, cannot be lowered
   const location = machines.find((m) => m.id === machineId)?.location ?? ex.location ?? "—";

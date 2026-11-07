@@ -5,3 +5,4 @@ node_modules/
 __pycache__/
 .next/
 backend/cache/
+backend/voice_samples/

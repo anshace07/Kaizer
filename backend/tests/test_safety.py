@@ -114,6 +114,6 @@ def test_llm_retries_once_on_invalid_json(monkeypatch):
     class FakeClient:
         chat = type("Chat", (), {"completions": FakeCompletions()})
 
-    monkeypatch.setattr(llm, "_client", lambda: FakeClient())
+    monkeypatch.setattr(llm, "_client", lambda *args: FakeClient())
     monkeypatch.setenv("LLM_MODEL", "fake-model")
     assert llm.chat_json([{"role": "user", "content": "hi"}])["ok"] is True

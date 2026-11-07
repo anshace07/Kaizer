@@ -87,3 +87,14 @@
   A: It's a safety message heard on a noisy floor. It must be instant, identical every time, and never wrong about the machine or severity. A template built from the saved fields can't hallucinate, needs no LLM call, and the same sentence hits the TTS cache, so a repeated alert costs nothing and plays immediately.
 - *Q: What happens if Gnani TTS is down during an emergency?*
   A: Nothing important breaks. Every spoken message is also shown as text (header bar and page), TTS errors are caught and reported as "voice unavailable", and audio never delays saving the incident or the safety alert. The dashboard alert comes from the safety rules, not from audio.
+
+## Phase 6.1 — Natural-sounding speech (part 1)
+
+**What was built and why**
+- Romanized Hindi ("dhuan", "par") sounds unnatural in Timbre. Every spoken message now has a separate SPOKEN version: Hindi words in Devanagari, digits kept, and English words the voice says well kept in Latin ("Report मिल गया। Machine 14 पर धुआं — Critical alert भेज दिया गया है।"). The screen keeps the Hinglish text. This applies to the acknowledgement template, the confirmation question (built from the machine candidates, no LLM) and the handover summary, where the LLM writes both versions and the spoken one must contain Devanagari or the template is used.
+- `TTS_MODEL` is now configurable (`timbre-v2.5` default; the SDK also supports `timbre-v3.0`). Four samples of the same sentence were generated for a listening test (`backend/voice_samples/`, not committed): v2.5 Urmila and Deepak, v3.0 Kalpana and Yashraj. The voice choice is pending, so Urmila v2.5 stays for now.
+- The last handover summary was the template because Gemini hit 20 s, and an investigation timed out at 20 s in the same minute. The handover summary now uses a 35 s timeout with one retry on timeout; other calls are unchanged. 40 tests pass.
+
+**Likely interview question**
+- *Q: Why not just send the Hinglish screen text to the voice?*
+  A: The TTS voice is trained on Hindi in Devanagari, so romanized Hindi is read like English letters and sounds wrong. Keeping two versions costs nothing for templates, and for the LLM summary we validate the spoken version separately. The screen stays readable for supervisors who type in Latin script.

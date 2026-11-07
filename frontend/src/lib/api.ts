@@ -78,7 +78,8 @@ export type Health = { status: string; data: string; stt_model: string; tts_mode
 
 // Spoken text from the backend. audio_url is null when Timbre failed (tts_error says why) — show the text anyway.
 export type Speech = {
-  text: string;
+  text: string; // shown on screen (Hinglish)
+  spoken_text?: string; // what the voice actually said (Devanagari Hindi + English words)
   audio_url: string | null;
   cached: boolean;
   tts_ms: number | null;
@@ -112,6 +113,7 @@ export type Analysis = {
   extractor: string; // "llm:<model>" or "keyword fallback"
   fallback_reason: string | null;
   rule_hits: RuleHit[];
+  spoken_question: string | null; // Devanagari version of the confirmation question, for the voice
   severity: Severity; // after the safety rules
   severity_decided_by: string;
   llm_ms: number | null;

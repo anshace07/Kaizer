@@ -11,7 +11,7 @@ import os
 import re
 import time
 
-from openai import OpenAI
+from openai import APITimeoutError, OpenAI
 
 TIMEOUT_SECONDS = 20
 log = logging.getLogger("uvicorn.error")  # shows up in the uvicorn terminal
@@ -25,12 +25,12 @@ def model_name() -> str:
     return os.getenv("LLM_MODEL") or "not configured"
 
 
-def _client() -> OpenAI:
+def _client(timeout: float = TIMEOUT_SECONDS) -> OpenAI:
     base_url, api_key = os.getenv("LLM_BASE_URL"), os.getenv("LLM_API_KEY")
     if not (base_url and api_key and os.getenv("LLM_MODEL")):
         raise LLMError("LLM is not configured (LLM_BASE_URL / LLM_MODEL / LLM_API_KEY in backend/.env)")
     # max_retries=0: we decide about retries ourselves (only once, on invalid JSON).
-    return OpenAI(base_url=base_url, api_key=api_key, timeout=TIMEOUT_SECONDS, max_retries=0)
+    return OpenAI(base_url=base_url, api_key=api_key, timeout=timeout, max_retries=0)
 
 
 def parse_json(text: str) -> dict:
@@ -60,22 +60,32 @@ def chat(messages: list[dict], tools: list[dict] | None = None):
     return response.choices[0].message, ms
 
 
-def chat_json(messages: list[dict]) -> dict:
+def chat_json(messages: list[dict], timeout: float = TIMEOUT_SECONDS, retry_on_timeout: bool = False) -> dict:
     """Send chat messages and return the reply as a dict. One retry if the reply is not valid JSON.
 
     We ask for JSON in the prompt instead of using response_format, because Gemini's OpenAI-compatible
     endpoint does not document `json_object` mode — the prompt + parser works with any provider.
     """
-    client = _client()
+    client = _client(timeout)
     extra = {}
     if effort := os.getenv("LLM_REASONING_EFFORT"):
         extra["reasoning_effort"] = effort
 
-    for attempt in (1, 2):
+    timeouts_left = 1 if retry_on_timeout else 0
+    attempt = 0
+    while attempt < 2:
+        attempt += 1
         started = time.perf_counter()
         try:
             response = client.chat.completions.create(model=os.environ["LLM_MODEL"], messages=messages, **extra)
-        except Exception as e:  # timeout, network, 4xx/5xx — never retried here
+        except APITimeoutError as e:
+            log.warning("LLM timed out after %s s (attempt %s)", round(time.perf_counter() - started, 1), attempt)
+            if timeouts_left:  # optional single retry, only for slow non-urgent calls (handover summary)
+                timeouts_left -= 1
+                attempt -= 1
+                continue
+            raise LLMError(f"APITimeoutError after {round(time.perf_counter() - started, 1)} s") from e
+        except Exception as e:  # network, 4xx/5xx — never retried here
             raise LLMError(f"{type(e).__name__} after {round(time.perf_counter() - started, 1)} s") from e
         ms = round((time.perf_counter() - started) * 1000)
         text = response.choices[0].message.content if response.choices else ""
