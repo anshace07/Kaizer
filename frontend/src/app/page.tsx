@@ -76,28 +76,24 @@ export default function DashboardPage() {
         </p>
       )}
 
-      {/* Simulated alert: the app never controls machines, it only shows this banner. */}
+      {/* Simulated alert (compact strip; the big slide-in banner is the global AlarmWatcher). */}
       {openCritical.length > 0 && (
-        <div className="pp-alarm-pulse animate-in fade-in flex items-start gap-4 rounded-2xl bg-gradient-to-r from-red-600 to-red-500 p-5 text-white duration-500">
-          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/15">
-            <Siren className="size-6" />
+        <div className="flex items-center gap-3 overflow-hidden rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm text-red-800">
+          <Siren className="size-4 shrink-0 text-red-600" />
+          <span className="shrink-0 font-semibold">
+            Simulated alert · {openCritical.length} critical open
           </span>
-          <div className="min-w-0">
-            <p className="text-base font-semibold">
-              Simulated alert — {openCritical.length} critical incident{openCritical.length > 1 ? "s" : ""} open
-            </p>
-            <ul className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1 text-sm text-red-50">
-              {openCritical.slice(0, 6).map((i) => (
-                <li key={i.id}>
-                  <Link href={`/incidents/${i.id}`} className="font-semibold underline underline-offset-2">
-                    {i.id}
-                  </Link>{" "}
-                  · {i.machine_id ?? "Unknown machine"} · {typeLabel(i.incident_type)}
-                </li>
-              ))}
-              {openCritical.length > 6 && <li>+{openCritical.length - 6} more</li>}
-            </ul>
-          </div>
+          <span className="min-w-0 truncate text-red-700">
+            {openCritical.map((i, n) => (
+              <span key={i.id}>
+                {n > 0 && " · "}
+                <Link href={`/incidents/${i.id}`} className="font-medium underline underline-offset-2">
+                  {i.id}
+                </Link>{" "}
+                {i.machine_id ?? "?"} {typeLabel(i.incident_type)}
+              </span>
+            ))}
+          </span>
         </div>
       )}
 

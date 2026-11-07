@@ -27,8 +27,10 @@ TIMEOUT_SECONDS = 60
 MAX_KEYTERMS = 200
 CACHE_DIR = BACKEND_DIR / "cache" / "stt"
 
-FACTORY_WORDS = ["dhuan", "धुआं", "smoke", "gas", "leak", "badbu", "chingari", "sparks", "aag", "fire",
-                 "vibration", "awaaz", "garam", "temperature", "oil"]
+FACTORY_WORDS = ["dhuan", "dhuaan", "dhua", "धुआं", "धुआँ", "धुंआ", "smoke", "gas", "gas leak", "गैस", "leak",
+                 "badbu", "बदबू", "ammonia", "chingari", "chingaari", "चिंगारी", "sparks", "short circuit",
+                 "current", "करंट", "aag", "आग", "fire", "jalne", "जलने", "burning smell", "vibration", "awaaz",
+                 "garam", "temperature", "oil"]
 
 # Uvicorn prints this logger to its terminal.
 log = logging.getLogger("uvicorn.error")
@@ -49,6 +51,10 @@ def build_keyterms() -> list[str]:
     every machine, then 2nd of every machine...) so that each machine gets some.
     """
     machines = json.loads((DATA_DIR / "machines.json").read_text(encoding="utf-8"))["machines"]
+    # Aliases with digits ("M14", "machine 14", "मशीन 14") go last: Prisma already writes digits well, while
+    # word-only aliases ("machine chaudah", "चौदह नंबर मशीन", "boiler pump") are what keyterms are for.
+    machines = [{**m, "aliases": sorted(m["aliases"], key=lambda a: any(ch.isdigit() for ch in a))}
+                for m in machines]
     ordered = list(FACTORY_WORDS)
     ordered += [m["id"] for m in machines]
     ordered += [m["name"] for m in machines]

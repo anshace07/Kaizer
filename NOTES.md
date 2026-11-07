@@ -109,3 +109,22 @@
 **Likely interview question**
 - *Q: Isn't the animation just decoration?*
   A: Each one carries information. The alarm banner and beep mark the moment a safety rule escalates. The step list shows which real tool call is running and how long each took. The row flash shows which incident just arrived. Every number shown is real: animations only move between measured values, and confidence is still labelled "model confidence (self-reported)".
+
+## Phase 6.1 (final) + 6.5 follow-ups
+
+- Voice chosen after a listening test: **Urmila, timbre-v2.5** (kept). `TTS_MODEL`/`TTS_VOICE` are set in `.env`, the samples are deleted, and the old cache (Latin-script audio, no longer spoken) was cleared. Re-tested once: the Devanagari acknowledgement took 1.9 s to generate (4.5 s of audio) and is now cached. CLAUDE.md is unchanged because the model is still v2.5.
+- The dashboard's own alert is now a compact one-line strip, so it doesn't stack under the slide-in alarm banner on camera.
+
+## Phase 6.2 — Hinglish hardening
+
+**What was built and why**
+- `app/text_norm.py`, one normaliser shared by the safety rules and the keyword extractor. It lowercases; unifies Devanagari marks (nukta, chandrabindu, anusvara: धुआँ/धुआं/धुंआ → धुआ); turns punctuation and the danda into spaces; collapses repeated Latin letters (dhuaan → dhuan, aaag → aag); maps common spellings to one form (dhua/dhuwan → dhuan, gais → gas, leek → leak); and maps Hindi helper words (की/से/में…) to Latin so mixed-script phrases match. Keywords pass through the same function, so both sides always agree. The LLM still gets the raw transcript.
+- `safety_rules.yaml` now lists romanised and Devanagari variants and short phrases for smoke, gas, sparks/electric shock, fire and burning smell. `except` phrases ("fire extinguisher", "smoke detector") stop routine talk about safety equipment from ringing the alarm. A bare "gas" no longer fires ("gas cylinder ka order"); it needs leak/smell context, and the LLM's `gas_leak` type is a second trigger path. Prisma keyterms got the same danger variants and still stay at 200: aliases with digits go last because Prisma writes digits well, so 126/130 word aliases ("chaudah", "मशीन चौदह", "boiler pump") fit.
+- Stress test `tests/test_hinglish_rules.py`: 85 danger sentences (17 per rule; Hinglish, Hindi, English, mixed, misspelled, STT-style) and 20 safe ones. The first pass was 83/85 with 1 false alarm. After the fixes it is **85/85 recall and 0/20 false alarms** on this set. 150 tests pass. Report: `eval/hinglish_text_test.md` (`backend\.venv\Scripts\python eval\run_hinglish_eval.py`).
+- Real extractor check (15 LLM requests): **Gemini returned HTTP 429 (rate limit) for 14 of 15**, so only 1 sentence was really extracted by the LLM, and it was correct. The other 14 went through the keyword fallback (14/15 correct), so this run did not measure LLM accuracy. The one failure (`पैकेजिंग मशीन से जलने की बदबू`) was fixed in the fallback: machine names are matched, M-12 has new aliases (synced into the live DB at startup without deleting anything), and "जलने की" counts as smoke. Offline, the fallback now gets 15/15 on those sentences. The same person wrote the sentences and the keyword lists, so treat that as a smoke check.
+
+**Likely interview questions**
+- *Q: Why normalise instead of just listing every spelling in the rules?*
+  A: Spellings explode: "dhuaan", "dhuaaan" and "dhuwan" differ by STT noise, and Devanagari has several valid ways to write the same nasal sound. One small, tested normaliser applied to both the text and the keywords handles whole families at once, and the explicit keyword lists stay short enough for a reviewer to check.
+- *Q: 100% recall — so the rules never miss?*
+  A: 100% on our own 85-sentence test set, which I wrote while tuning the rules, so it is a regression test, not a guarantee. Real speech will produce spellings we haven't seen. That's why there are three layers: the rules on the raw transcript, the rules on the LLM's extracted fields, and the LLM's `incident_type` mapped to a rule.

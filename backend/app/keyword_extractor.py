@@ -5,11 +5,16 @@ It is deliberately simple; the safety rules still run on its output, so alerts n
 """
 import re
 
+from .text_norm import has_phrase, normalize
+
 # Checked in this order: the dangerous types first, so "smoke + noise" counts as smoke.
 TYPE_KEYWORDS = {
-    "sparks_fire": ["spark", "sparks", "chingari", "चिंगारी", "fire", "aag", "आग", "flame", "short circuit"],
-    "smoke": ["smoke", "dhuan", "dhuaan", "dhua", "धुआं", "धुआँ", "धुंआ", "burning smell", "jalne ki"],
-    "gas_leak": ["gas", "गैस", "chemical smell", "badbu", "बदबू", "fumes", "solvent smell"],
+    "sparks_fire": ["spark", "sparks", "chingari", "चिंगारी", "fire", "aag", "आग", "flame", "short circuit",
+                    "current maar", "करंट", "jal raha", "jal rahi", "जल रहा"],
+    "smoke": ["smoke", "dhuan", "dhuaan", "dhua", "धुआं", "धुआँ", "धुंआ", "burning smell", "jalne ki", "जलने की"],
+    # bare "gas" is not enough ("gas cylinder ka order"): it needs leak/smell words, like safety rule S2
+    "gas_leak": ["gas leak", "gas nikal", "gas ki smell", "gas ki badbu", "gas smell", "गैस लीक", "गैस निकल",
+                 "chemical smell", "badbu", "बदबू", "fumes", "solvent smell", "ammonia"],
     "overheating": ["garam", "गरम", "गर्म", "hot", "temperature", "overheat", "overheating"],
     "oil_leak": ["leak", "लीक", "oil", "tel", "तेल", "tapak", "टपक", "coolant"],
     "vibration": ["vibration", "vibrate", "vibrating", "shake", "shaking", "hil", "हिल"],
@@ -23,11 +28,10 @@ DEVANAGARI = re.compile(r"[ऀ-ॿ]")
 LATIN = re.compile(r"[A-Za-z]")
 
 
-def contains(text: str, phrase: str) -> bool:
-    """True if `phrase` appears as whole words. Works for Latin and Devanagari script."""
-    letter = r"[\wऀ-ॿ]"
-    pattern = rf"(?<!{letter}){re.escape(phrase.lower())}(?!{letter})"
-    return re.search(pattern, text) is not None
+def contains(normalized_text: str, phrase: str) -> bool:
+    """True if `phrase` appears as whole words. Both sides use the shared normaliser (text_norm.py),
+    so spelling/script variants ("dhuaan", "धुआँ") match like the safety rules do."""
+    return has_phrase(normalized_text, normalize(phrase))
 
 
 def detect_language(text: str) -> str:
@@ -36,7 +40,7 @@ def detect_language(text: str) -> str:
         return "hindi"
     if has_dev and has_latin:
         return "hinglish"
-    if any(contains(text, w) for w in HINGLISH_WORDS):
+    if any(contains(normalize(text), w) for w in HINGLISH_WORDS):
         return "hinglish"
     return "english"
 
@@ -45,7 +49,7 @@ def find_machine(text: str, machines: list[dict]) -> tuple[str | None, list[str]
     """Return the machine id if exactly one machine is mentioned, else None."""
     found, hits = set(), []
     for m in machines:
-        for alias in [m["id"]] + m["aliases"]:
+        for alias in [m["id"], m.get("name", "")] + m["aliases"]:
             if contains(text, alias):
                 found.add(m["id"])
                 hits.append(alias)
@@ -53,7 +57,7 @@ def find_machine(text: str, machines: list[dict]) -> tuple[str | None, list[str]
 
 
 def extract(transcript: str, machines: list[dict]) -> dict:
-    text = transcript.lower()
+    text = normalize(transcript)
     machine_id, hits = find_machine(text, machines)
 
     incident_type, symptoms = "other", []

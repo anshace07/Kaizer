@@ -91,13 +91,16 @@ def upgrade_schema():
 
 
 def add_new_machines(db):
-    """Insert machines added to machines.json after the database was created (e.g. M-40)."""
+    """Keep machines in step with machines.json: insert new ones (e.g. M-40) and refresh the name/aliases
+    of existing ones (e.g. new spoken aliases). Never deletes anything."""
     next_service = {row["machine_id"]: row["next_service"] for row in load("maintenance.json")["maintenance"]}
-    existing = {mid for (mid,) in db.query(Machine.id)}
     for m in load("machines.json")["machines"]:
-        if m["id"] not in existing:
+        machine = db.get(Machine, m["id"])
+        if machine is None:
             db.add(Machine(id=m["id"], name=m["name"], type=m["type"], location=m["location"],
                            aliases=m["aliases"], next_service_date=next_service.get(m["id"])))
+        else:
+            machine.name, machine.aliases = m["name"], m["aliases"]
     db.commit()
 
 
