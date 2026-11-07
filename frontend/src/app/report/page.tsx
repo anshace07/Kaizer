@@ -9,6 +9,7 @@ import { ConfirmDetails } from "@/components/confirm-details";
 import { VoiceRecorder } from "@/components/voice-recorder";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 
 // Chip -> Prisma language_code (done in the backend): Hindi hi-IN, English en-IN, Hinglish hi-IN,en-IN.
@@ -76,9 +77,9 @@ export default function ReportPage() {
   }
 
   return (
-    <div className="max-w-3xl space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Report an Incident</h1>
+    <div className="mx-auto max-w-3xl space-y-8">
+      <div className="text-center">
+        <h1 className="text-[28px] font-semibold tracking-tight">Report an Incident</h1>
         <p className="text-sm text-slate-500">Speak naturally in Hindi, English or Hinglish about the issue.</p>
       </div>
 
@@ -92,8 +93,8 @@ export default function ReportPage() {
               role="radio"
               aria-checked={language === l}
               onClick={() => setLanguage(l)}
-              className={`rounded-lg border px-4 py-1.5 text-sm ${
-                language === l ? "border-[#6d4ae8] bg-violet-100 text-[#6d4ae8]" : "bg-white"
+              className={`rounded-xl border px-5 py-2 text-sm font-medium shadow-sm transition-colors ${
+                language === l ? "border-[#6d4ae8] bg-violet-100 text-[#6d4ae8]" : "border-border bg-white hover:bg-violet-50"
               }`}
             >
               {capitalize(l)}
@@ -102,10 +103,18 @@ export default function ReportPage() {
         </div>
       </div>
 
-      {transcribing && <p className="text-center text-sm text-slate-500">Transcribing with Prisma v3.0…</p>}
+      {transcribing && (
+        <Card aria-label="Transcribing">
+          <CardContent className="space-y-3">
+            <p className="text-sm text-slate-500">Transcribing with Prisma v3.0…</p>
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-3 w-2/3" />
+          </CardContent>
+        </Card>
+      )}
 
       {voice && (
-        <Card className="border-violet-200">
+        <Card className="animate-in fade-in slide-in-from-bottom-2 border-violet-200 duration-500">
           <CardContent className="space-y-3">
             <p className="text-sm font-medium">What we heard</p>
             <p className="rounded-md bg-violet-50 p-3 text-lg">

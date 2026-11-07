@@ -72,9 +72,9 @@ export function ConfirmDetails({ analysis, machines, onBack, onCreated }: Props)
   }
 
   return (
-    <div className="max-w-4xl space-y-5">
+    <div className="animate-in fade-in slide-in-from-bottom-2 mx-auto max-w-5xl space-y-5 duration-300">
       <div>
-        <h1 className="text-2xl font-semibold">Confirm Details</h1>
+        <h1 className="text-[28px] font-semibold tracking-tight">Confirm Details</h1>
         <p className="text-sm text-slate-500">We&apos;ve understood your report like this. Please check it.</p>
       </div>
 

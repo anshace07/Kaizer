@@ -1,4 +1,4 @@
-import { AlertTriangle, BookOpen, Bot, Loader2, Wrench } from "lucide-react";
+import { AlertTriangle, BookOpen, Bot, CheckCircle2, Circle, Loader2, Wrench } from "lucide-react";
 import type { Investigation, SopSection } from "@/lib/api";
 import { EmptyState } from "@/components/empty-state";
 
@@ -26,13 +26,7 @@ export function InvestigationPanel({ inv }: { inv: Investigation | null }) {
     );
   }
   if (inv.status === "running") {
-    return (
-      <div className="flex flex-col items-center gap-3 py-10 text-slate-600">
-        <Loader2 className="size-6 animate-spin text-[#6d4ae8]" />
-        <p>Investigating… {inv.tool_calls.length} tool call(s) so far</p>
-        <ToolTrace inv={inv} />
-      </div>
-    );
+    return <InvestigationSteps inv={inv} />;
   }
   if (inv.status === "failed") {
     return <p className="py-6 text-sm text-red-700">Investigation failed: {inv.error}</p>;
@@ -110,6 +104,53 @@ export function InvestigationPanel({ inv }: { inv: Investigation | null }) {
   );
 }
 
+// Live progress: each step ticks off when that REAL tool call has finished (from inv.tool_calls).
+const STEPS = [
+  { tool: "get_machine_history", label: "Machine history" },
+  { tool: "check_open_tickets", label: "Open tickets" },
+  { tool: "get_maintenance_schedule", label: "Maintenance schedule" },
+  { tool: "search_sop", label: "Safety manual (SOP)" },
+];
+
+export function InvestigationSteps({ inv }: { inv: Investigation }) {
+  const doneCall = (tool: string) => inv.tool_calls.find((c) => c.tool === tool && c.ok);
+  const firstOpen = STEPS.findIndex((s) => !doneCall(s.tool));
+  const rows = [...STEPS.map((s) => ({ ...s, call: doneCall(s.tool) })), { tool: "summary", label: "Writing findings", call: undefined }];
+  const current = firstOpen === -1 ? STEPS.length : firstOpen;
+
+  return (
+    <div className="mx-auto max-w-md py-8">
+      <p className="mb-5 flex items-center justify-center gap-2 text-sm font-medium text-[#6d4ae8]">
+        <Loader2 className="size-4 animate-spin" /> Investigating…
+      </p>
+      <ol className="space-y-2.5">
+        {rows.map((row, i) => {
+          const done = !!row.call;
+          const active = !done && i === current;
+          return (
+            <li
+              key={row.tool}
+              className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm transition-all duration-300 ${
+                done ? "border-emerald-200 bg-emerald-50/70" : active ? "border-violet-200 bg-violet-50 shadow-sm" : "border-border bg-white opacity-60"
+              }`}
+            >
+              {done ? (
+                <CheckCircle2 className="animate-in zoom-in size-5 text-emerald-600 duration-300" />
+              ) : active ? (
+                <Loader2 className="size-5 animate-spin text-[#6d4ae8]" />
+              ) : (
+                <Circle className="size-5 text-slate-300" />
+              )}
+              <span className={`flex-1 ${done ? "text-emerald-900" : "text-slate-700"}`}>{row.label}</span>
+              {row.call && <span className="text-xs tabular-nums text-emerald-700">{row.call.ms} ms</span>}
+            </li>
+          );
+        })}
+      </ol>
+    </div>
+  );
+}
+
 function ToolTrace({ inv }: { inv: Investigation }) {
   if (!inv.tool_calls.length) return null;
   return (
@@ -151,7 +192,7 @@ export function SopText({ section }: { section: SopSection }) {
 }
 
 export function SopPanel({ inv }: { inv: Investigation | null }) {
-  if (inv?.status === "running") return <p className="py-6 text-sm text-slate-500">Investigating… the SOP appears when done.</p>;
+  if (inv?.status === "running") return <InvestigationSteps inv={inv} />;
   if (!inv?.sop_section) {
     return <EmptyState icon={BookOpen} title="No SOP matched" text="No safety-manual section was found for this incident." />;
   }

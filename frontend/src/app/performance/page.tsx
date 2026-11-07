@@ -7,7 +7,7 @@ export default function PerformancePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">AI Performance &amp; Reliability</h1>
+        <h1 className="text-[28px] font-semibold tracking-tight">AI Performance &amp; Reliability</h1>
         <p className="text-sm text-slate-500">Extraction accuracy and noise robustness on the synthetic test set.</p>
       </div>
       <Card>

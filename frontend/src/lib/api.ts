@@ -74,7 +74,15 @@ export type Stats = {
   unresolved_by_severity: Partial<Record<Severity, number>>;
 };
 
-export type Health = { status: string; data: string; stt_model: string; tts_model: string; llm_model: string };
+export type Health = {
+  status: string;
+  data: string;
+  stt_model: string;
+  tts_model: string;
+  tts_voice: string;
+  llm_model: string;
+  demo_reset_enabled: boolean;
+};
 
 // Spoken text from the backend. audio_url is null when Timbre failed (tts_error says why) — show the text anyway.
 export type Speech = {
@@ -184,6 +192,7 @@ export const api = {
   tts: (text: string) => request<Speech>("/api/tts", { method: "POST", body: JSON.stringify({ text }) }),
   announce: (id: string) => request<Speech>(`/api/incidents/${id}/announce`, { method: "POST" }),
   handoverSummary: () => request<HandoverSummary>("/api/handover/summary", { method: "POST" }),
+  resetDemo: () => request<{ incidents: number; machines: number }>("/api/dev/reset-demo", { method: "POST" }),
   decideDuplicate: (id: string, action: "merge" | "keep_separate") =>
     request<IncidentDetail>(`/api/incidents/${id}/duplicate`, { method: "POST", body: JSON.stringify({ action }) }),
   setStatus: (id: string, status: Status, note = "") =>

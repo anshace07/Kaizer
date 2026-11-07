@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { AlertOctagon, AlertTriangle, CheckCircle2, Loader, Siren } from "lucide-react";
+import { AlertOctagon, AlertTriangle, ArrowRight, CheckCircle2, Clock, Loader, Siren } from "lucide-react";
 import { api } from "@/lib/api";
 import { currentShift, greeting, typeLabel } from "@/lib/format";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
-import { IncidentsTable } from "@/components/incidents-table";
+import { AnimatedNumber } from "@/components/animated-number";
+import { IncidentsTable, IncidentsTableSkeleton } from "@/components/incidents-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Load stats and incidents together; refreshed every 5 seconds by useAutoRefresh.
 async function loadDashboard() {
@@ -20,88 +22,112 @@ export default function DashboardPage() {
 
   const openCritical = data?.incidents.filter((i) => i.severity === "critical" && i.status !== "resolved") ?? [];
 
+  // Plain counts from /api/stats — nothing estimated.
   const cards = [
     {
       label: "Critical (open)",
       value: data?.stats.unresolved_by_severity.critical,
       icon: AlertOctagon,
-      style: "bg-red-50 text-red-700",
+      tone: "bg-red-50 text-red-600",
+      tile: "bg-white text-red-500",
     },
     {
       label: "High (open)",
       value: data?.stats.unresolved_by_severity.high,
       icon: AlertTriangle,
-      style: "bg-orange-50 text-orange-700",
+      tone: "bg-amber-50 text-amber-700",
+      tile: "bg-white text-amber-500",
     },
-    { label: "In Progress", value: data?.stats.by_status.in_progress, icon: Loader, style: "bg-sky-50 text-sky-700" },
+    {
+      label: "In Progress",
+      value: data?.stats.by_status.in_progress,
+      icon: Loader,
+      tone: "bg-sky-50 text-sky-700",
+      tile: "bg-white text-sky-500",
+    },
     {
       label: "Resolved",
       value: data?.stats.by_status.resolved,
       icon: CheckCircle2,
-      style: "bg-emerald-50 text-emerald-700",
+      tone: "bg-emerald-50 text-emerald-700",
+      tile: "bg-white text-emerald-500",
     },
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between">
+    <div className="space-y-7">
+      <div className="flex items-start justify-between gap-6">
         <div>
-          <h1 className="text-2xl font-semibold">{greeting(now)}, Supervisor</h1>
-          <p className="text-sm text-slate-500">Here&apos;s what&apos;s happening on the plant floor.</p>
+          <h1 className="text-[28px] font-semibold tracking-tight">{greeting(now)}, Supervisor 👋</h1>
+          <p className="mt-1 text-sm text-slate-500">Here&apos;s what&apos;s happening on the plant floor.</p>
         </div>
-        <div className="rounded-lg border bg-white px-4 py-2 text-right">
-          <p className="text-xs text-slate-500">Current Shift</p>
-          <p className="text-sm font-medium">{currentShift(now)}</p>
+        <div className="flex items-center gap-3 rounded-2xl border border-border bg-white px-4 py-2.5 shadow-[var(--pp-shadow)]">
+          <Clock className="size-4 text-[#6d4ae8]" />
+          <div>
+            <p className="text-[11px] uppercase tracking-wide text-slate-400">Current shift</p>
+            <p className="text-sm font-semibold">{currentShift(now)}</p>
+          </div>
         </div>
       </div>
 
       {error && (
-        <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+        <p className="rounded-xl bg-red-50 p-4 text-sm text-red-700">
           Cannot reach the backend at localhost:8000. Is it running? ({error})
         </p>
       )}
 
       {/* Simulated alert: the app never controls machines, it only shows this banner. */}
       {openCritical.length > 0 && (
-        <div className="flex items-start gap-3 rounded-xl bg-red-600 p-4 text-white shadow">
-          <Siren className="mt-0.5 size-5 shrink-0" />
-          <div>
-            <p className="font-semibold">
+        <div className="pp-alarm-pulse animate-in fade-in flex items-start gap-4 rounded-2xl bg-gradient-to-r from-red-600 to-red-500 p-5 text-white duration-500">
+          <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-white/15">
+            <Siren className="size-6" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-base font-semibold">
               Simulated alert — {openCritical.length} critical incident{openCritical.length > 1 ? "s" : ""} open
             </p>
-            <ul className="mt-1 text-sm text-red-50">
-              {openCritical.map((i) => (
+            <ul className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1 text-sm text-red-50">
+              {openCritical.slice(0, 6).map((i) => (
                 <li key={i.id}>
-                  <Link href={`/incidents/${i.id}`} className="underline">
+                  <Link href={`/incidents/${i.id}`} className="font-semibold underline underline-offset-2">
                     {i.id}
                   </Link>{" "}
                   · {i.machine_id ?? "Unknown machine"} · {typeLabel(i.incident_type)}
                 </li>
               ))}
+              {openCritical.length > 6 && <li>+{openCritical.length - 6} more</li>}
             </ul>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        {cards.map(({ label, value, icon: Icon, style }) => (
-          <div key={label} className={`rounded-xl p-4 ${style}`}>
-            <Icon className="size-5" />
-            <p className="mt-2 text-3xl font-semibold">{data ? (value ?? 0) : "—"}</p>
-            <p className="text-sm">{label}</p>
+      <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
+        {cards.map(({ label, value, icon: Icon, tone, tile }) => (
+          <div key={label} className={`rounded-2xl p-5 shadow-[var(--pp-shadow)] ${tone}`}>
+            <span className={`flex size-10 items-center justify-center rounded-xl shadow-sm ${tile}`}>
+              <Icon className="size-5" />
+            </span>
+            {data ? (
+              <p className="mt-4 text-4xl font-semibold tracking-tight">
+                <AnimatedNumber value={value ?? 0} />
+              </p>
+            ) : (
+              <Skeleton className="mt-4 h-10 w-14 bg-white/70" />
+            )}
+            <p className="mt-1 text-sm font-medium">{label}</p>
           </div>
         ))}
       </div>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Recent Incidents</CardTitle>
-          <Link href="/incidents" className="text-sm text-[#6d4ae8] hover:underline">
-            View all →
+          <CardTitle className="text-lg">Recent Incidents</CardTitle>
+          <Link href="/incidents" className="flex items-center gap-1 text-sm font-medium text-[#6d4ae8] hover:underline">
+            View all <ArrowRight className="size-4" />
           </Link>
         </CardHeader>
         <CardContent>
-          {data ? <IncidentsTable incidents={data.incidents.slice(0, 8)} /> : <p className="text-sm">Loading…</p>}
+          {data ? <IncidentsTable incidents={data.incidents.slice(0, 8)} flashNew /> : <IncidentsTableSkeleton />}
         </CardContent>
       </Card>
     </div>

@@ -11,6 +11,7 @@ import { EscalatedBadge, SeverityBadge, StatusBadge } from "@/components/badges"
 import { InvestigationPanel, SopPanel } from "@/components/investigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Selected tab = white with purple text, so it stands out on the lavender page.
@@ -24,7 +25,7 @@ const ACTIONS: { status: Status; label: string }[] = [
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-[140px_1fr] gap-2 border-b py-2.5 text-sm last:border-0">
+    <div className="grid grid-cols-[230px_1fr] gap-4 border-b py-3 text-sm last:border-0">
       <span className="text-slate-500">{label}</span>
       <span className="font-medium">{children}</span>
     </div>
@@ -61,7 +62,16 @@ export default function IncidentDetailPage() {
   }
 
   if (error) return <p className="text-sm text-red-700">{error}</p>;
-  if (!inc) return <p className="text-sm">Loading…</p>;
+  if (!inc) {
+    return (
+      <div className="space-y-5" aria-label="Loading incident">
+        <Skeleton className="h-4 w-40" />
+        <Skeleton className="h-9 w-80" />
+        <Skeleton className="h-9 w-96" />
+        <Skeleton className="h-72 w-full rounded-2xl" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -75,7 +85,7 @@ export default function IncidentDetailPage() {
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-semibold">Incident {inc.id}</h1>
+            <h1 className="text-[28px] font-semibold tracking-tight">Incident {inc.id}</h1>
             <SeverityBadge severity={inc.severity} />
             <StatusBadge status={inc.status} />
             {inc.escalated && <EscalatedBadge />}

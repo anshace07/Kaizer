@@ -96,28 +96,38 @@ export function VoiceRecorder({ disabled, onAudio }: Props) {
 
   return (
     <div className="flex flex-col items-center gap-3">
-      <button
-        onClick={recording ? stop : start}
-        disabled={disabled}
-        aria-label={recording ? "Stop recording" : "Start recording"}
-        className={`flex size-36 items-center justify-center rounded-full text-white transition-all disabled:cursor-not-allowed disabled:opacity-60 ${
-          recording ? "bg-red-600" : "bg-[#6d4ae8] hover:bg-[#5b3bd4]"
-        }`}
-        // The halo grows with the live mic level.
-        style={{ boxShadow: `0 0 0 ${12 + level * 28}px ${recording ? "rgba(220,38,38,0.15)" : "rgba(109,74,232,0.12)"}` }}
-      >
-        {recording ? <Square className="size-12" /> : <Mic className="size-14" />}
-      </button>
+      <div className="relative flex size-56 items-center justify-center">
+        {/* Soft lavender disc behind the button, like the mockup */}
+        <span className="absolute inset-0 rounded-full bg-gradient-to-b from-violet-100 to-violet-50" />
+        {recording && <span className="absolute inset-6 animate-ping rounded-full bg-red-400/30 [animation-duration:1.6s]" />}
+        <button
+          onClick={recording ? stop : start}
+          disabled={disabled}
+          aria-label={recording ? "Stop recording" : "Start recording"}
+          className={`relative flex size-36 items-center justify-center rounded-full text-white transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60 ${
+            recording
+              ? "scale-105 bg-gradient-to-b from-red-500 to-red-600"
+              : "pp-mic-glow bg-gradient-to-b from-[#8b6cf6] to-[#5b3bd4] hover:scale-105"
+          }`}
+          // While recording, the red halo grows with the live mic level.
+          style={recording ? { boxShadow: `0 0 0 ${10 + level * 30}px rgba(220,38,38,0.18), 0 12px 40px -8px rgba(220,38,38,0.6)` } : undefined}
+        >
+          {recording ? <Square className="size-12" fill="currentColor" /> : <Mic className="size-14" />}
+        </button>
+      </div>
 
-      <p className="mt-4 font-medium">{recording ? "Recording… tap to stop" : "Tap to Speak"}</p>
+      <p className="mt-1 text-lg font-semibold">{recording ? "Recording… tap to stop" : "Tap to Speak"}</p>
 
       {recording ? (
         <div className="flex w-64 flex-col items-center gap-1">
-          <p className="font-mono text-sm tabular-nums">
-            {seconds.toFixed(1)} s / {MAX_SECONDS} s
+          <p className="font-mono text-sm font-medium tabular-nums text-red-600">
+            ● {seconds.toFixed(1)} s / {MAX_SECONDS} s
           </p>
-          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200" aria-label="Microphone level">
-            <div className="h-full bg-red-500 transition-[width] duration-75" style={{ width: `${level * 100}%` }} />
+          <div className="h-2.5 w-full overflow-hidden rounded-full bg-red-100" aria-label="Microphone level">
+            <div
+              className="h-full rounded-full bg-gradient-to-r from-red-400 to-red-600 transition-[width] duration-75"
+              style={{ width: `${Math.max(3, level * 100)}%` }}
+            />
           </div>
         </div>
       ) : (

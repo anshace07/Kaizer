@@ -2,6 +2,7 @@
 
 Start (from the backend folder):  uvicorn app.main:app --reload --port 8000
 """
+import os
 from collections import Counter
 from contextlib import asynccontextmanager
 from datetime import timedelta, timezone
@@ -19,7 +20,7 @@ from .models import Incident, IncidentEvent, Machine, now_utc
 from .safety import rules
 from .schemas import (DuplicateDecision, ExtractRequest, TTSRequest, IncidentCreate, IncidentDetailOut, IncidentOut, MachineOut, Severity, Status,
                       StatusUpdate)
-from .seed import seed_if_empty
+from .seed import reset_demo, seed_if_empty
 from .services import announce, audio, extract, stt, tts
 
 load_dotenv(BACKEND_DIR / ".env")
@@ -74,6 +75,19 @@ def next_incident_id(db: Session) -> str:
     return f"INC-{max(numbers, default=1000) + 1}"
 
 
+def demo_reset_enabled() -> bool:
+    return os.getenv("ALLOW_DEMO_RESET", "").lower() == "true"
+
+
+@app.post("/api/dev/reset-demo")
+def reset_demo_data(db: Session = Depends(get_db)):
+    """DEV ONLY (ALLOW_DEMO_RESET=true in backend/.env): wipe all incidents and restore the clean seed."""
+    if not demo_reset_enabled():
+        raise HTTPException(403, "Demo reset is disabled. Set ALLOW_DEMO_RESET=true in backend/.env (dev only).")
+    reset_demo(db)
+    return {"incidents": db.query(Incident).count(), "machines": db.query(Machine).count()}
+
+
 @app.get("/api/health")
 def health():
     return {
@@ -83,6 +97,7 @@ def health():
         "tts_model": tts.model(),
         "tts_voice": tts.voice(),
         "llm_model": llm.model_name(),
+        "demo_reset_enabled": demo_reset_enabled(),
     }
 
 

@@ -72,6 +72,12 @@ Open http://localhost:3000.
 
 **Run both together:** open two terminals — start the backend in `backend/` (command above), then `npm run dev` in `frontend/`.
 
+## Recording a demo
+
+Set `ALLOW_DEMO_RESET=true` in `backend/.env` (dev only) and restart the backend. Then in the app open
+**Settings → Reset demo**: it deletes every incident and restores the clean seed (6 past incidents, 16 machines,
+open tickets). The button only appears under `npm run dev`.
+
 ## Repo layout
 
 - `backend/` — FastAPI + SQLAlchemy + SQLite (port 8000)

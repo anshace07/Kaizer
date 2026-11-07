@@ -128,10 +128,39 @@
     @apply font-sans;
   }
 }
-/* PlantPulse colours (from design/mockup.png): purple accent, soft lavender page. */
+/* PlantPulse look (from design/mockup.png): purple accent, soft lavender page, white cards, soft shadows. */
 :root {
   --primary: #6d4ae8;
   --primary-foreground: #ffffff;
   --ring: #6d4ae8;
-  --background: #f6f5fb;
+  --background: #f5f4fb;
+  --border: #ebe8f4;
+  --muted: #f1eff8;
+  --radius: 0.875rem;
+  --pp-shadow: 0 1px 2px rgb(30 27 46 / 0.04), 0 6px 20px -6px rgb(30 27 46 / 0.10);
+}
+
+/* Critical alarm: soft red pulse around the banner. */
+@keyframes pp-alarm-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgb(220 38 38 / 0.45); }
+  50% { box-shadow: 0 0 0 12px rgb(220 38 38 / 0); }
+}
+.pp-alarm-pulse { animation: pp-alarm-pulse 1.8s ease-in-out infinite; }
+
+/* Mic button: gentle breathing glow when idle, stronger ring while recording. */
+@keyframes pp-mic-glow {
+  0%, 100% { box-shadow: 0 0 0 14px rgb(109 74 232 / 0.10), 0 12px 40px -8px rgb(109 74 232 / 0.55); }
+  50% { box-shadow: 0 0 0 22px rgb(109 74 232 / 0.06), 0 12px 48px -6px rgb(109 74 232 / 0.65); }
+}
+.pp-mic-glow { animation: pp-mic-glow 3s ease-in-out infinite; }
+
+/* Newest incident row flashes for 3 seconds. */
+@keyframes pp-row-flash {
+  0%, 60% { background-color: rgb(237 233 254); }
+  100% { background-color: transparent; }
+}
+.pp-row-flash { animation: pp-row-flash 3s ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-alarm-pulse, .pp-mic-glow, .pp-row-flash { animation: none; }
 }

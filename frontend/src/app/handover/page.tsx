@@ -42,7 +42,7 @@ export default function HandoverPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Shift Handover Summary</h1>
+        <h1 className="text-[28px] font-semibold tracking-tight">Shift Handover Summary</h1>
         <p className="text-sm text-slate-500">Open and important incidents for the next shift · {currentShift(new Date())}</p>
       </div>
       {error && <p className="text-sm text-red-700">{error}</p>}

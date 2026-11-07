@@ -199,3 +199,18 @@ def test_keep_separate(client):
     second = client.post("/api/incidents", json=REPORT).json()
     kept = client.post(f"/api/incidents/{second['id']}/duplicate", json={"action": "keep_separate"}).json()
     assert kept["duplicate_status"] == "kept_separate" and kept["status"] == "open"
+
+
+# ---------- dev-only demo reset ----------
+
+def test_reset_demo_is_off_unless_enabled(client, monkeypatch):
+    monkeypatch.delenv("ALLOW_DEMO_RESET", raising=False)
+    assert client.post("/api/dev/reset-demo").status_code == 403
+
+
+def test_reset_demo_restores_clean_seed(client, monkeypatch):
+    monkeypatch.setenv("ALLOW_DEMO_RESET", "true")
+    client.post("/api/incidents", json=REPORT)  # a test incident
+    assert len(client.get("/api/incidents").json()) == 7
+    assert client.post("/api/dev/reset-demo").json() == {"incidents": 6, "machines": 16}
+    assert [i["id"] for i in client.get("/api/incidents").json()][-1] == "INC-1001"

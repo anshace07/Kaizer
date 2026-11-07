@@ -98,3 +98,14 @@
 **Likely interview question**
 - *Q: Why not just send the Hinglish screen text to the voice?*
   A: The TTS voice is trained on Hindi in Devanagari, so romanized Hindi is read like English letters and sounds wrong. Keeping two versions costs nothing for templates, and for the LLM summary we validate the spoken version separately. The screen stays readable for supervisors who type in Latin script.
+
+## Phase 6.5 — Demo-ready look
+
+**What was built and why**
+- Styling only, closer to `design/mockup.png`: Inter font, white cards with soft shadows and rounded-2xl corners, a cleaner dark sidebar with a filled purple active item and a Settings link, pastel stat cards with icon tiles, and content width capped at 1440 px so it looks balanced in a 1920×1080 recording. All pages and incident tabs were checked at 1920×1080 in headless Chrome with no overflow or sideways scroll.
+- Motion with a purpose: a global "Simulated alert · Critical" banner slides in and pulses when a NEW critical incident appears, with a short two-tone beep (Web Audio, no file, respects Voice on/off). The mic glows when idle, pings red while recording and has a gradient level bar. Transcripts and pages fade in. Skeletons replace "Loading…". "Investigating…" is a step list (History → Tickets → Maintenance → SOP → findings) that ticks off from the real `tool_calls` as each finishes, with its measured ms. Stat numbers count up to their real new value, and new dashboard rows flash for 3 s.
+- Demo prep: Settings shows the models in use (from `/api/health`) and a dev-only **Reset demo** (needs `ALLOW_DEMO_RESET=true` and `npm run dev`, plus an inline "Yes, reset" confirm). It deletes all incidents and reseeds through the request's DB session, so it is tested on a test DB (42 tests pass). No logic, rules or existing API behaviour changed. The only additions are `/api/dev/reset-demo` and `demo_reset_enabled` in `/api/health`.
+
+**Likely interview question**
+- *Q: Isn't the animation just decoration?*
+  A: Each one carries information. The alarm banner and beep mark the moment a safety rule escalates. The step list shows which real tool call is running and how long each took. The row flash shows which incident just arrived. Every number shown is real: animations only move between measured values, and confidence is still labelled "model confidence (self-reported)".

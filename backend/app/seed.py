@@ -111,6 +111,15 @@ def seed_if_empty():
             add_new_machines(db)
 
 
+def reset_demo(db):
+    """Dev-only "Reset demo": delete every row and load the clean synthetic seed again (6 past incidents,
+    all machines from machines.json, tickets). Uses the given session, so tests can run it on a test DB."""
+    for table in (IncidentEvent, Incident, Ticket, Machine):
+        db.query(table).delete()
+    db.commit()
+    seed(db)
+
+
 def reset_and_seed():
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
