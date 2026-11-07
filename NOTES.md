@@ -38,3 +38,22 @@
   A: Browsers record webm or ogg, and Prisma doesn't accept webm. Converting once on the server with ffmpeg handles every source the same way: mic, phone uploads, and old recordings. It also gives a fixed 16 kHz mono format, which is what speech models expect. The same WAV bytes always give the same hash, which makes the cache reliable.
 - *Q: There are 226 machine aliases but Prisma allows 200 keyterms. How did you choose?*
   A: Factory danger words go first, then every machine ID and name. Aliases are then added round-robin (the 1st alias of every machine, then the 2nd…) until we reach 200, so no machine loses all its aliases. The list is built from `machines.json` automatically, so adding a machine needs no code change.
+
+## Phase 4 — Real brain, safety layer, confirm-back
+
+**What was built and why**
+- `app/llm.py` is an OpenAI-compatible client set only by env vars (Google Gemini `gemini-3.6-flash` via its OpenAI endpoint). It has a 20 s timeout and one retry on invalid JSON. `app/services/extract.py` sends the transcript, every known machine with its aliases, and 6 Hinglish/Hindi few-shot examples (including messy STT text). It validates the reply with Pydantic and then never trusts it about machines: unknown IDs are dropped, and a missing or ambiguous machine forces a short Hinglish confirmation question. If the LLM fails, the old keyword extractor takes over and the timeline says so.
+- `app/safety/rules.py` + `safety_rules.yaml` hold fixed keyword rules in English, Hinglish and Devanagari. They run on the RAW transcript and on the extracted fields, both at extract time and again on the server when the incident is saved. Any hit gives Critical + Escalated, a "Safety rule S1 triggered: dhuan" timeline event, and a severity that neither the LLM nor the confirm screen can lower. Each incident stores the transcript, the full extraction JSON, rule hits, the LLM's suggestion, the final severity and what decided it.
+- The confirm screen shows the raw transcript, rule hits and the AI's question, with one button per candidate machine (14 vs 40). Saving stays blocked until the worker answers. The language chips now set Prisma's `language_code`. The DB is upgraded in place (new columns, renamed incident types) so no data is lost. M-40 (Thermic Fluid Heater) was added as a 16th synthetic machine.
+
+**Measured (headless Chrome, typed text, 7 Nov 2026):** "Machine 14 mein dhuan aa raha hai" → Critical + red dashboard alert in **5.6 s** end to end. That is extract (LLM + rules) 3.8 s, create + open incident 0.6 s, dashboard showing the alert 1.2 s, with no human think time. Case (b) extract took 2.3 s. These are single runs, not averages.
+
+**Model choice:** `gemini-3.8-flash`, the newest stable Flash, never replied within 20–60 s for this project, on the OpenAI endpoint and the native API, streamed or not. `gemini-3.7-flash` routes to it. `gemini-3.6-flash` (stable since Jul 2026) answers in about 2–3 s, so we use it. 13 real LLM calls were used in this phase, 7 of them while diagnosing that.
+
+**Not done yet:** `data/test_utterances.json` still uses the old incident type names. Update it in the evaluation phase.
+
+**Likely interview questions**
+- *Q: If the LLM is so good, why keep keyword rules?*
+  A: The LLM is probabilistic. It can be down, slow, or simply wrong, and for smoke, gas or fire a miss is far worse than a false alarm. The rules are a few lines of plain Python anyone can audit. They run on the raw words the worker said, and the code makes it impossible for the LLM's answer to lower them. Our test with the LLM mocked to say "low" for "dhuan" proves it stays Critical.
+- *Q: What does "model confidence (self-reported)" mean — is it accurate?*
+  A: It's the number the LLM says about itself, so it is not a measured accuracy and we label it that way. We only use it as a hint. The real safeguards are the confirmation question when the machine is unclear and the fixed safety rules. Measured accuracy will come from the evaluation phase on the test utterances.

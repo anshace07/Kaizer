@@ -1,21 +1,21 @@
-"""TEMPORARY keyword-matching extractor. Replaced by the real LLM step in Phase 4.
+"""Keyword-matching extractor — the FALLBACK used when the LLM fails or times out.
 
 Turns a transcript into machine_id / incident_type / severity using simple word lists.
-It is deliberately dumb so the rest of the app can be built and tested first.
+It is deliberately simple; the safety rules still run on its output, so alerts never depend on the LLM.
 """
 import re
 
 # Checked in this order: the dangerous types first, so "smoke + noise" counts as smoke.
 TYPE_KEYWORDS = {
     "sparks_fire": ["spark", "sparks", "chingari", "चिंगारी", "fire", "aag", "आग", "flame", "short circuit"],
-    "smoke_overheating": ["smoke", "dhuan", "dhuaan", "dhua", "धुआं", "धुआँ", "धुंआ", "burning smell", "jalne ki"],
+    "smoke": ["smoke", "dhuan", "dhuaan", "dhua", "धुआं", "धुआँ", "धुंआ", "burning smell", "jalne ki"],
     "gas_leak": ["gas", "गैस", "chemical smell", "badbu", "बदबू", "fumes", "solvent smell"],
-    "high_temperature": ["garam", "गरम", "गर्म", "hot", "temperature", "overheat", "overheating"],
-    "fluid_leak": ["leak", "लीक", "oil", "tel", "तेल", "tapak", "टपक", "paani", "पानी", "coolant"],
-    "vibration_noise": ["vibration", "vibrate", "vibrating", "shake", "shaking", "hil", "हिल",
-                        "awaaz", "aawaz", "आवाज़", "आवाज", "noise", "khat khat", "screech", "screeching"],
+    "overheating": ["garam", "गरम", "गर्म", "hot", "temperature", "overheat", "overheating"],
+    "oil_leak": ["leak", "लीक", "oil", "tel", "तेल", "tapak", "टपक", "coolant"],
+    "vibration": ["vibration", "vibrate", "vibrating", "shake", "shaking", "hil", "हिल"],
+    "noise": ["awaaz", "aawaz", "आवाज़", "आवाज", "noise", "khat khat", "screech", "screeching"],
 }
-CRITICAL_TYPES = {"sparks_fire", "smoke_overheating", "gas_leak"}
+CRITICAL_TYPES = {"sparks_fire", "smoke", "gas_leak"}
 LOW_WORDS = ["thoda", "thodi", "small", "halka", "little", "थोड़ा", "थोड़ी"]
 HINGLISH_WORDS = ["hai", "raha", "rahi", "nahi", "se", "ke", "ki", "ka", "mein", "pe", "ho", "aa", "wali"]
 
@@ -68,7 +68,7 @@ def extract(transcript: str, machines: list[dict]) -> dict:
         severity = "critical"
     elif any(contains(text, w) for w in LOW_WORDS):
         severity = "low"
-    elif incident_type == "high_temperature":
+    elif incident_type == "overheating":
         severity = "high"
     elif incident_type == "other":
         severity = "low"
@@ -82,5 +82,5 @@ def extract(transcript: str, machines: list[dict]) -> dict:
         "symptoms": symptoms,
         "language": detect_language(transcript),
         "matched_keywords": hits + symptoms,
-        "extractor": "keyword-fake (temporary, Phase 1)",
+        "extractor": "keyword fallback",
     }

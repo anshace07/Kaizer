@@ -1,7 +1,7 @@
 """Database tables."""
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
@@ -34,7 +34,13 @@ class Incident(Base):
     language: Mapped[str | None] = mapped_column(String, nullable=True)
     severity: Mapped[str] = mapped_column(String)  # low / medium / high / critical
     status: Mapped[str] = mapped_column(String, default="open")  # open / acknowledged / in_progress / resolved
-    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)  # only set when actually measured
+    confidence: Mapped[float | None] = mapped_column(Float, nullable=True)  # LLM's SELF-REPORTED confidence
+    escalated: Mapped[bool] = mapped_column(Boolean, default=False)  # a safety rule fired -> simulated alert
+    severity_source: Mapped[str | None] = mapped_column(String, nullable=True)  # safety_rule / llm / worker / ...
+    llm_severity: Mapped[str | None] = mapped_column(String, nullable=True)  # what the extractor suggested
+    extractor: Mapped[str | None] = mapped_column(String, nullable=True)  # "llm:<model>" or "keyword fallback"
+    extracted: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # full extractor output, as returned
+    rule_hits: Mapped[list] = mapped_column(JSON, default=list)  # [{"rule_id", "keyword", "source", ...}]
     related_incident_id: Mapped[str | None] = mapped_column(ForeignKey("incidents.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 

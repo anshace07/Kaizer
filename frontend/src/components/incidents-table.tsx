@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import type { Incident } from "@/lib/api";
 import { formatDateTime, typeLabel } from "@/lib/format";
-import { SeverityBadge, StatusBadge } from "./badges";
+import { EscalatedBadge, SeverityBadge, StatusBadge } from "./badges";
 
 // Used on the Dashboard (recent incidents) and the Incidents page. Click a row to open it.
 export function IncidentsTable({ incidents }: { incidents: Incident[] }) {
@@ -39,8 +39,9 @@ export function IncidentsTable({ incidents }: { incidents: Incident[] }) {
             <td className="py-2.5">
               <SeverityBadge severity={inc.severity} />
             </td>
-            <td className="py-2.5">
+            <td className="space-x-1 py-2.5">
               <StatusBadge status={inc.status} />
+              {inc.escalated && inc.status !== "resolved" && <EscalatedBadge />}
             </td>
           </tr>
         ))}

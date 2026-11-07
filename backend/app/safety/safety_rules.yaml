@@ -1,0 +1,33 @@
+# PlantPulse AI — deterministic safety rules.
+#
+# If ANY keyword below appears in the raw transcript or in the extracted symptoms, or the extracted
+# incident_type is listed, the incident becomes CRITICAL + ESCALATED (simulated alert).
+# The LLM can never lower or suppress this. Keywords match whole words, case-insensitive,
+# in Latin script and Devanagari. Rules deliberately ignore negation ("smoke nahi hai" still fires):
+# a false alarm costs a walk to the machine; a missed fire costs far more.
+
+rules:
+  - id: S1
+    name: Smoke
+    incident_types: [smoke]
+    keywords: [smoke, smoking, dhuan, dhuaan, dhua, dhuwan, धुआं, धुआँ, धुंआ, धुआ, धुंए, धुएं, धुएँ]
+
+  - id: S2
+    name: Gas leak / chemical smell
+    incident_types: [gas_leak]
+    keywords: [gas, gas leak, gas leakage, badbu, गैस, बदबू, chemical smell, fumes]
+
+  - id: S3
+    name: Sparks
+    incident_types: [sparks_fire]
+    keywords: [spark, sparks, sparking, chingari, chingaari, chingariyan, चिंगारी, चिंगारियां, short circuit, शॉर्ट सर्किट]
+
+  - id: S4
+    name: Fire
+    incident_types: [sparks_fire]
+    keywords: [fire, flame, flames, aag, आग, jal raha, jal rahi, जल रहा, जल रही]
+
+  - id: S5
+    name: Burning smell
+    incident_types: []
+    keywords: [burning smell, burning, jalne ki smell, jalne ki badbu, jalne ki boo, जलने की, जलने की बदबू]

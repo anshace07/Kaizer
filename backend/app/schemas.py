@@ -6,9 +6,7 @@ from pydantic import BaseModel, ConfigDict
 
 Severity = Literal["low", "medium", "high", "critical"]
 Status = Literal["open", "acknowledged", "in_progress", "resolved"]
-IncidentType = Literal[
-    "smoke_overheating", "gas_leak", "sparks_fire", "vibration_noise", "fluid_leak", "high_temperature", "other"
-]
+IncidentType = Literal["smoke", "gas_leak", "sparks_fire", "vibration", "noise", "oil_leak", "overheating", "other"]
 
 
 class MachineOut(BaseModel):
@@ -42,23 +40,30 @@ class IncidentOut(BaseModel):
     language: str | None
     severity: str
     status: str
-    confidence: float | None
+    escalated: bool
+    severity_source: str | None
+    confidence: float | None  # self-reported by the LLM, not measured
     related_incident_id: str | None
     created_at: datetime
 
 
 class IncidentDetailOut(IncidentOut):
+    llm_severity: str | None
+    extractor: str | None
+    extracted: dict | None
+    rule_hits: list[dict]
     events: list[EventOut]
 
 
 class IncidentCreate(BaseModel):
     machine_id: str | None = None
     incident_type: IncidentType
-    severity: Severity
+    severity: Severity  # what the worker confirmed; the server still applies the safety rules
     symptoms: list[str] = []
-    transcript: str = ""
+    transcript: str = ""  # the RAW transcript (rules run on it again on the server)
     language: str | None = None
     related_incident_id: str | None = None
+    analysis: dict | None = None  # the /api/incidents/extract response the worker confirmed
 
 
 class StatusUpdate(BaseModel):
@@ -68,13 +73,3 @@ class StatusUpdate(BaseModel):
 
 class ExtractRequest(BaseModel):
     transcript: str
-
-
-class ExtractOut(BaseModel):
-    machine_id: str | None
-    incident_type: str
-    severity: str
-    symptoms: list[str]
-    language: str
-    matched_keywords: list[str]
-    extractor: str

@@ -24,13 +24,23 @@ export type Incident = {
   language: string | null;
   severity: Severity;
   status: Status;
-  confidence: number | null; // null until we actually measure it
+  escalated: boolean; // a safety rule fired -> simulated alert
+  severity_source: string | null; // safety_rule / llm / keyword_fallback / worker
+  confidence: number | null; // the LLM's SELF-REPORTED confidence, not measured
   related_incident_id: string | null;
   created_at: string;
 };
 
+export type RuleHit = { rule_id: string; rule_name: string; keyword: string; source: string };
+
 export type IncidentEvent = { timestamp: string; action: string; detail: string };
-export type IncidentDetail = Incident & { events: IncidentEvent[] };
+export type IncidentDetail = Incident & {
+  llm_severity: string | null;
+  extractor: string | null;
+  extracted: Analysis | null;
+  rule_hits: RuleHit[];
+  events: IncidentEvent[];
+};
 
 export type Stats = {
   total: number;
@@ -43,14 +53,30 @@ export type Stats = {
 
 export type Health = { status: string; data: string; stt_model: string; tts_model: string; llm_model: string };
 
-export type Extracted = {
+export type Extraction = {
   machine_id: string | null;
+  machine_candidates: string[];
+  location: string | null;
   incident_type: string;
-  severity: Severity;
-  symptoms: string[];
+  reported_symptoms: string[];
   language: string;
-  matched_keywords: string[];
-  extractor: string;
+  suggested_severity: Severity | null;
+  extraction_confidence: number | null; // self-reported by the LLM
+  confirmation_required: boolean;
+  confirmation_question: string | null;
+};
+
+// Response of POST /api/incidents/extract
+export type Analysis = {
+  transcript: string;
+  extraction: Extraction;
+  extractor: string; // "llm:<model>" or "keyword fallback"
+  fallback_reason: string | null;
+  rule_hits: RuleHit[];
+  severity: Severity; // after the safety rules
+  severity_decided_by: string;
+  llm_ms: number | null;
+  analyse_ms: number;
 };
 
 export type NewIncident = {
@@ -60,6 +86,7 @@ export type NewIncident = {
   symptoms: string[];
   transcript: string;
   language: string | null;
+  analysis: Analysis | null;
 };
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
@@ -84,9 +111,10 @@ export type Transcription = {
 };
 
 // Audio upload is multipart form data, so it can't use the JSON `request` helper.
-async function transcribe(audio: Blob, filename: string): Promise<Transcription> {
+async function transcribe(audio: Blob, filename: string, language: string): Promise<Transcription> {
   const form = new FormData();
   form.append("file", audio, filename);
+  form.append("language", language); // hindi / english / hinglish -> Prisma language_code
   const res = await fetch(`${API_URL}/api/transcribe`, { method: "POST", body: form });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -109,7 +137,7 @@ export const api = {
   },
   incident: (id: string) => request<IncidentDetail>(`/api/incidents/${id}`),
   extract: (transcript: string) =>
-    request<Extracted>("/api/incidents/extract", { method: "POST", body: JSON.stringify({ transcript }) }),
+    request<Analysis>("/api/incidents/extract", { method: "POST", body: JSON.stringify({ transcript }) }),
   createIncident: (body: NewIncident) =>
     request<IncidentDetail>("/api/incidents", { method: "POST", body: JSON.stringify(body) }),
   setStatus: (id: string, status: Status, note = "") =>

@@ -4,13 +4,25 @@ export const SEVERITIES = ["critical", "high", "medium", "low"] as const;
 export const STATUSES = ["open", "acknowledged", "in_progress", "resolved"] as const;
 
 export const INCIDENT_TYPES: Record<string, string> = {
-  smoke_overheating: "Smoke / overheating",
+  smoke: "Smoke",
   gas_leak: "Gas leak",
   sparks_fire: "Sparks / fire",
-  vibration_noise: "Vibration / noise",
-  fluid_leak: "Fluid leak",
-  high_temperature: "High temperature",
+  vibration: "Vibration",
+  noise: "Noise",
+  oil_leak: "Oil leak",
+  overheating: "Overheating",
   other: "Other",
+};
+
+// Who decided the final severity (backend `severity_source`).
+export const DECIDED_BY: Record<string, string> = {
+  safety_rule: "Safety rule",
+  llm: "LLM suggestion",
+  keyword_fallback: "Keyword fallback (LLM unavailable)",
+  worker: "Worker (edited on confirm screen)",
+  default: "Default (no suggestion)",
+  "seed data": "Seed data",
+  "before Phase 4": "Saved before safety rules existed",
 };
 
 export const STATUS_LABELS: Record<string, string> = {
@@ -48,7 +60,7 @@ export function formatDateTime(value: string) {
   });
 }
 
-// Confidence is only shown when the backend actually measured it.
+// The LLM's SELF-REPORTED confidence (not measured accuracy). "—" when there is none.
 export function formatConfidence(value: number | null | undefined) {
   return value == null ? "—" : `${Math.round(value * 100)}%`;
 }

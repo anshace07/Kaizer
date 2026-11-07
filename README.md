@@ -39,6 +39,18 @@ Try one file from the command line (from `backend/`):
 .venv\Scripts\python -m app.scripts.try_stt path\to\audio.wav
 ```
 
+## LLM extraction + safety rules
+
+`backend/.env` needs `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY` (any OpenAI-compatible provider; we use
+Google Gemini `gemini-3.6-flash`). If the LLM fails or times out (20 s), a keyword extractor takes over.
+Fixed safety rules live in `backend/app/safety/safety_rules.yaml` and always run, LLM or not.
+
+Run the tests (from `backend/`, they never call the real LLM):
+
+```powershell
+.venv\Scripts\python -m pytest -q
+```
+
 ## Run the frontend
 
 First time only: `cd frontend` then `npm install`.

@@ -39,3 +39,10 @@ export function StatusBadge({ status }: { status: string }) {
     </span>
   );
 }
+
+// Shown when a fixed safety rule fired. The alert is simulated — the app never controls machines.
+export function EscalatedBadge() {
+  return (
+    <span className="inline-flex rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-medium text-white">Escalated</span>
+  );
+}

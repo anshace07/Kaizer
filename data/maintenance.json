@@ -76,6 +76,11 @@
       "machine_id": "M-15",
       "last_service": "2026-09-24",
       "next_service": "2026-12-24"
+    },
+    {
+      "machine_id": "M-40",
+      "last_service": "2026-08-20",
+      "next_service": "2026-11-20"
     }
   ]
 }

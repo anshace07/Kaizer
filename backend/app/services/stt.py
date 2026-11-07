@@ -1,9 +1,9 @@
 """Speech-to-text with Gnani Prisma v3.0.
 
-transcribe(wav_bytes) -> {"transcript", "detected_language_code", "stt_ms", "cached"}
+transcribe(wav_bytes, language_code) -> {"transcript", "detected_language_code", "stt_ms", "cached"}
 
-- Every result is cached in backend/cache/stt/<sha256 of the audio>.json, so the same audio never
-  costs credits twice.
+- Every result is cached in backend/cache/stt/<sha256 of the audio>_<language>.json, so the same
+  audio + language never costs credits twice.
 - No automatic retries: a failed call is reported, never repeated in a loop.
 - The API key is read from backend/.env and is never printed or logged.
 """
@@ -19,7 +19,8 @@ from ..db import BACKEND_DIR, DATA_DIR
 
 STT_URL = "https://api.vachana.ai/stt/v3"
 MODEL = "prisma-v3.0"
-LANGUAGE_CODE = "hi-IN,en-IN"
+# Report page chips -> Prisma language_code. Hinglish (default) lets Prisma hear both.
+LANGUAGE_CODES = {"hindi": "hi-IN", "english": "en-IN", "hinglish": "hi-IN,en-IN"}
 FORMAT = "codemix"
 TOPIC = "A factory worker reporting a machine problem or safety incident on the plant floor."
 TIMEOUT_SECONDS = 60
@@ -106,10 +107,10 @@ def _error_message(response: httpx.Response) -> STTError:
     return STTError(f"Prisma error {s} {code}: {detail}".strip(), 502)
 
 
-def transcribe(wav: bytes) -> dict:
+def transcribe(wav: bytes, language_code: str = LANGUAGE_CODES["hinglish"]) -> dict:
     """Send 16 kHz mono WAV bytes to Prisma (or return the cached result)."""
     digest = hashlib.sha256(wav).hexdigest()
-    cache_file = CACHE_DIR / f"{digest}.json"
+    cache_file = CACHE_DIR / f"{digest}_{language_code.replace(',', '+')}.json"
     if cache_file.exists():
         result = json.loads(cache_file.read_text(encoding="utf-8"))
         log.info("STT cache hit %s... (original call took %s ms)", digest[:12], result["stt_ms"])
@@ -117,7 +118,7 @@ def transcribe(wav: bytes) -> dict:
 
     data = {
         "model": MODEL,
-        "language_code": LANGUAGE_CODE,
+        "language_code": language_code,
         "format": FORMAT,
         "keyterms": json.dumps(build_keyterms(), ensure_ascii=False),
         "topic": TOPIC,

@@ -241,6 +241,18 @@
       "date": "2026-10-31",
       "event_type": "complaint",
       "description": "Abnormal screeching noise during feed"
+    },
+    {
+      "machine_id": "M-40",
+      "date": "2026-08-20",
+      "event_type": "maintenance",
+      "description": "Burner nozzle cleaned, fluid level topped up"
+    },
+    {
+      "machine_id": "M-40",
+      "date": "2026-10-30",
+      "event_type": "complaint",
+      "description": "Outlet temperature overshoot; thermostat recalibrated"
     }
   ]
 }

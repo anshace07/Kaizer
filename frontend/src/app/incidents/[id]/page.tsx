@@ -3,11 +3,11 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { BookOpen, Bot } from "lucide-react";
+import { BookOpen, Bot, ShieldAlert } from "lucide-react";
 import { api, type Status } from "@/lib/api";
-import { capitalize, formatConfidence, formatDateTime, typeLabel } from "@/lib/format";
+import { capitalize, DECIDED_BY, formatConfidence, formatDateTime, typeLabel } from "@/lib/format";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
-import { SeverityBadge, StatusBadge } from "@/components/badges";
+import { EscalatedBadge, SeverityBadge, StatusBadge } from "@/components/badges";
 import { EmptyState } from "@/components/empty-state";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -66,6 +66,7 @@ export default function IncidentDetailPage() {
             <h1 className="text-2xl font-semibold">Incident {inc.id}</h1>
             <SeverityBadge severity={inc.severity} />
             <StatusBadge status={inc.status} />
+            {inc.escalated && <EscalatedBadge />}
           </div>
           <p className="text-sm text-slate-500">Reported {formatDateTime(inc.created_at)}</p>
         </div>
@@ -102,7 +103,25 @@ export default function IncidentDetailPage() {
               </Field>
               <Field label="Symptoms">{inc.symptoms.length ? inc.symptoms.join(", ") : "—"}</Field>
               <Field label="Language">{capitalize(inc.language)}</Field>
-              <Field label="Confidence">{formatConfidence(inc.confidence)}</Field>
+              <Field label="Severity decided by">
+                {DECIDED_BY[inc.severity_source ?? ""] ?? inc.severity_source ?? "—"}
+                {inc.llm_severity && <span className="font-normal text-slate-500"> · AI suggested {inc.llm_severity}</span>}
+              </Field>
+              <Field label="Safety rules">
+                {inc.rule_hits.length === 0 ? (
+                  "None triggered"
+                ) : (
+                  <span className="flex flex-col gap-1 text-red-700">
+                    {inc.rule_hits.map((h) => (
+                      <span key={h.rule_id} className="flex items-center gap-1.5">
+                        <ShieldAlert className="size-4" /> {h.rule_id} {h.rule_name}: “{h.keyword}” ({h.source})
+                      </span>
+                    ))}
+                  </span>
+                )}
+              </Field>
+              <Field label="Model confidence (self-reported)">{formatConfidence(inc.confidence)}</Field>
+              <Field label="Extracted by">{inc.extractor ?? "—"}</Field>
               <Field label="Related incident">
                 {inc.related_incident_id ? (
                   <Link href={`/incidents/${inc.related_incident_id}`} className="text-[#6d4ae8] hover:underline">
@@ -115,6 +134,14 @@ export default function IncidentDetailPage() {
               <Field label="Transcript">
                 <span className="font-normal italic">“{inc.transcript || "—"}”</span>
               </Field>
+              {inc.extracted && (
+                <details className="pt-3 text-sm">
+                  <summary className="cursor-pointer text-slate-500">Raw extraction JSON</summary>
+                  <pre className="mt-2 overflow-x-auto rounded-md bg-slate-50 p-3 text-xs">
+                    {JSON.stringify(inc.extracted, null, 2)}
+                  </pre>
+                </details>
+              )}
             </TabsContent>
 
             <TabsContent value="investigation">
@@ -139,7 +166,7 @@ export default function IncidentDetailPage() {
                   <li key={i} className="mb-4 ml-4">
                     <span className="absolute -left-1.5 mt-1.5 size-3 rounded-full bg-[#6d4ae8]" />
                     <p className="text-xs text-slate-500">{formatDateTime(ev.timestamp)}</p>
-                    <p className="text-sm font-medium">{capitalize(ev.action.replace("_", " "))}</p>
+                    <p className="text-sm font-medium">{capitalize(ev.action.replaceAll("_", " "))}</p>
                     <p className="text-sm text-slate-600">{ev.detail}</p>
                   </li>
                 ))}

@@ -347,6 +347,29 @@
         "grinding machine",
         "ग्राइंडर"
       ]
+    },
+    {
+      "id": "M-40",
+      "name": "Thermic Fluid Heater",
+      "type": "heater",
+      "location": "Utility Block",
+      "aliases": [
+        "M40",
+        "M 40",
+        "machine 40",
+        "machine forty",
+        "machine chalis",
+        "chalis",
+        "40 number machine",
+        "40 number wali machine",
+        "chalis number wali machine",
+        "मशीन 40",
+        "मशीन चालीस",
+        "चालीस नंबर मशीन",
+        "thermic heater",
+        "thermic fluid heater",
+        "थर्मिक हीटर"
+      ]
     }
   ]
 }
