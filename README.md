@@ -36,7 +36,7 @@ cached in `backend/cache/` by the audio's SHA-256, so the same file never costs 
 Try one file from the command line (from `backend/`):
 
 ```powershell
-.venvScriptspython -m app.scripts.try_stt path	oudio.wav
+.venv\Scripts\python -m app.scripts.try_stt path\to\audio.wav
 ```
 
 ## Run the frontend
