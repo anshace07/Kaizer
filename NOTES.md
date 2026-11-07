@@ -159,3 +159,16 @@
 **Likely interview question**
 - *Q: How do you keep API keys out of Docker images?*
   A: The images contain only code and synthetic data. An allow-list `.dockerignore` stops `.env` from even entering the build context, and the keys reach the running container only through compose's `env_file`, from the user's own `backend/.env`. The repo ships `.env.example` with empty key fields.
+
+## Phase 7 — Machine Confirmation and Final Verification (7 Nov 2026)
+
+**What was built and why**
+- Improved machine extraction, Hindi/Hinglish alias detection, ambiguity handling and incident validation so workers must confirm the correct machine before creating an incident.
+- Strengthened deterministic safety enforcement and updated the report interface to distinguish typed, live voice and uploaded audio reports.
+- Verification: 164 backend tests passed (tests were copied into the running container because the Docker image does not include the test directory); frontend production build succeeded; Docker Compose started both services; backend health and frontend HTTP checks returned 200. Machine 14/Machine 40 candidate detection returned both expected candidates. Full browser-based workflow verification remains pending.
+
+**Likely interview questions**
+- Q: How does the system handle ambiguous machine identification?
+  A: It identifies possible machine candidates, asks the worker to confirm the correct machine, and prevents incident creation until a valid machine is selected.
+- Q: How do you prevent an LLM from lowering a Critical safety alert?
+  A: Deterministic Python safety rules independently evaluate the report and enforce severity, so the LLM cannot downgrade a rule-triggered Critical alert.

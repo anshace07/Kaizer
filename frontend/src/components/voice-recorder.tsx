@@ -1,15 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { ChangeEvent } from "react";
 import { Mic, Square, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const MAX_SECONDS = 25;
 
+export type AudioSource = "voice" | "upload";
+
 type Props = {
   disabled?: boolean;
   statusText?: string;
-  onAudio: (audio: Blob, filename: string) => void;
+  onAudio: (
+    audio: Blob,
+    filename: string,
+    source: AudioSource
+  ) => void;
 };
 
 export function VoiceRecorder({
@@ -27,13 +34,30 @@ export function VoiceRecorder({
   const fileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    return () => cleanupRef.current();
+    return () => {
+      if (recorderRef.current?.state === "recording") {
+        recorderRef.current.stop();
+      }
+
+      cleanupRef.current();
+    };
   }, []);
 
   async function start() {
     setError(null);
 
+    if (
+      !navigator.mediaDevices?.getUserMedia ||
+      typeof MediaRecorder === "undefined"
+    ) {
+      setError(
+        "Audio recording is not supported in this browser. Please upload an audio file."
+      );
+      return;
+    }
+
     let stream: MediaStream;
+    let audioContext: AudioContext | null = null;
 
     try {
       stream = await navigator.mediaDevices.getUserMedia({
@@ -47,54 +71,56 @@ export function VoiceRecorder({
     }
 
     try {
-      const audioContext = new AudioContext();
+      audioContext = new AudioContext();
       await audioContext.resume();
 
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 1024;
 
-      audioContext.createMediaStreamSource(stream).connect(analyser);
+      audioContext
+        .createMediaStreamSource(stream)
+        .connect(analyser);
 
       const samples = new Float32Array(analyser.fftSize);
+
       let frame = 0;
 
       const measure = () => {
         analyser.getFloatTimeDomainData(samples);
 
         const rms = Math.sqrt(
-          samples.reduce((sum, x) => sum + x * x, 0) /
+          samples.reduce((sum, value) => sum + value * value, 0) /
             samples.length
         );
 
         setLevel(Math.min(1, rms * 4));
+
         frame = requestAnimationFrame(measure);
       };
 
       measure();
 
-      const recorder = new MediaRecorder(stream);
+      const mimeType = MediaRecorder.isTypeSupported(
+        "audio/webm;codecs=opus"
+      )
+        ? "audio/webm;codecs=opus"
+        : "";
+
+      const recorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream);
+
       const chunks: Blob[] = [];
 
       recorder.ondataavailable = (event) => {
-        if (event.data.size) {
+        if (event.data.size > 0) {
           chunks.push(event.data);
         }
       };
 
-      recorder.onstop = () => {
-        cleanupRef.current();
-
-        const type = recorder.mimeType || "audio/webm";
-
-        onAudio(
-          new Blob(chunks, { type }),
-          type.includes("ogg") ? "recording.ogg" : "recording.webm"
-        );
-      };
-
       const startedAt = Date.now();
 
-      const timer = setInterval(() => {
+      const timer = window.setInterval(() => {
         const elapsed = (Date.now() - startedAt) / 1000;
 
         setSeconds(elapsed);
@@ -113,21 +139,64 @@ export function VoiceRecorder({
 
         stream.getTracks().forEach((track) => track.stop());
 
-        void audioContext.close();
+        if (audioContext && audioContext.state !== "closed") {
+          void audioContext.close();
+        }
+      };
+
+      recorder.onstop = () => {
+        cleanupRef.current();
+        cleanupRef.current = () => {};
 
         setRecording(false);
         setLevel(0);
+        setSeconds(0);
 
+        const type = recorder.mimeType || "audio/webm";
+
+        const extension = type.includes("ogg")
+          ? "ogg"
+          : type.includes("mp4")
+            ? "m4a"
+            : "webm";
+
+        if (chunks.length === 0) {
+          setError("No audio was captured. Please try recording again.");
+          return;
+        }
+
+        onAudio(
+          new Blob(chunks, { type }),
+          `recording.${extension}`,
+          "voice"
+        );
+      };
+
+      recorder.onerror = () => {
+        cleanupRef.current();
         cleanupRef.current = () => {};
+
+        setRecording(false);
+        setLevel(0);
+        setError("Recording failed. Please try again.");
       };
 
       recorderRef.current = recorder;
+
       recorder.start();
 
       setSeconds(0);
       setRecording(true);
     } catch {
       stream.getTracks().forEach((track) => track.stop());
+
+      if (audioContext && audioContext.state !== "closed") {
+        void audioContext.close();
+      }
+
+      setRecording(false);
+      setLevel(0);
+
       setError("Unable to start recording. Please try again.");
     }
   }
@@ -138,22 +207,22 @@ export function VoiceRecorder({
     }
   }
 
-  function onFile(event: React.ChangeEvent<HTMLInputElement>) {
+  function onFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
 
     event.target.value = "";
 
-    if (file) {
-      onAudio(file, file.name);
-    }
+    if (!file) return;
+
+    setError(null);
+
+    onAudio(file, file.name, "upload");
   }
 
   return (
     <div className="flex w-full flex-col items-center gap-4">
-
       {/* MICROPHONE BUTTON */}
       <div className="relative flex h-44 w-44 items-center justify-center">
-
         <span className="absolute inset-0 rounded-full bg-gradient-to-b from-violet-100 to-violet-50" />
 
         {recording && (
@@ -173,7 +242,9 @@ export function VoiceRecorder({
           style={
             recording
               ? {
-                  boxShadow: `0 0 0 ${10 + level * 25}px rgba(220,38,38,0.18), 0 12px 40px -8px rgba(220,38,38,0.6)`,
+                  boxShadow: `0 0 0 ${
+                    10 + level * 25
+                  }px rgba(220,38,38,0.18), 0 12px 40px -8px rgba(220,38,38,0.6)`,
                 }
               : undefined
           }
@@ -184,20 +255,18 @@ export function VoiceRecorder({
             <Mic className="h-12 w-12" />
           )}
         </button>
-
       </div>
 
-      {/* STATUS LABEL */}
+      {/* STATUS */}
       <p className="text-lg font-bold text-slate-900">
         {recording
           ? "Recording… tap to stop"
           : statusText ?? "Tap to Speak"}
       </p>
 
-      {/* RECORDING TIMER - VISIBLE ONLY WHILE RECORDING */}
+      {/* RECORDING TIMER */}
       {recording && (
         <div className="flex w-64 flex-col items-center gap-2">
-
           <p className="font-mono text-sm font-semibold tabular-nums text-red-600">
             ● {seconds.toFixed(1)} s / {MAX_SECONDS} s
           </p>
@@ -210,7 +279,6 @@ export function VoiceRecorder({
               }}
             />
           </div>
-
         </div>
       )}
 
@@ -240,7 +308,6 @@ export function VoiceRecorder({
           {error}
         </p>
       )}
-
     </div>
   );
 }

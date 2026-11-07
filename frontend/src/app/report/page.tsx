@@ -22,9 +22,11 @@ import {
 
 import { capitalize } from "@/lib/format";
 import { play } from "@/lib/voice";
-
 import { ConfirmDetails } from "@/components/confirm-details";
-import { VoiceRecorder } from "@/components/voice-recorder";
+import {
+  VoiceRecorder,
+  type AudioSource,
+} from "@/components/voice-recorder";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,30 +35,75 @@ import { Textarea } from "@/components/ui/textarea";
 
 const LANGUAGES = ["hindi", "english", "hinglish"];
 
+type ReportSource = "voice" | "upload" | "typed";
+
 export default function ReportPage() {
   const router = useRouter();
 
   const [language, setLanguage] = useState("hinglish");
   const [text, setText] = useState("");
+
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [machines, setMachines] = useState<Machine[]>([]);
+
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
   const [voice, setVoice] = useState<Transcription | null>(null);
   const [transcribing, setTranscribing] = useState(false);
 
+  const [source, setSource] = useState<ReportSource>("typed");
+  const [audioSource, setAudioSource] = useState<AudioSource>("voice");
+
+  // Load available machines.
   useEffect(() => {
-    api.machines().then(setMachines).catch((e) => setError(String(e)));
+    let active = true;
+
+    api.machines()
+      .then((result) => {
+        if (active) {
+          setMachines(result);
+        }
+      })
+      .catch((e) => {
+        if (active) {
+          setError(e instanceof Error ? e.message : String(e));
+        }
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  // Voice recording -> Gnani Prisma transcription
-  async function onAudio(audio: Blob, filename: string) {
+  // Audio recording/upload -> Gnani Prisma transcription.
+  async function onAudio(
+    audio: Blob,
+    filename: string,
+    reportSource: AudioSource
+  ) {
+    if (transcribing || busy) return;
+
     setTranscribing(true);
     setError(null);
     setVoice(null);
 
+    setAudioSource(reportSource);
+
     try {
-      const result = await api.transcribe(audio, filename, language);
+      const result = await api.transcribe(
+        audio,
+        filename,
+        language
+      );
+
+      if (!result.transcript?.trim()) {
+        setError(
+          "No speech was detected. Please record again or try another audio file."
+        );
+        return;
+      }
+
       setVoice(result);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -65,15 +112,27 @@ export default function ReportPage() {
     }
   }
 
-  // Transcript -> AI extraction and safety rules
-  async function understand(transcript: string) {
-    if (!transcript.trim()) return;
+  // Transcript -> AI extraction and deterministic safety rules.
+  async function understand(
+    transcript: string,
+    reportSource: ReportSource
+  ) {
+    const cleanedTranscript = transcript.trim();
+
+    if (!cleanedTranscript) {
+      setError("Please enter or record an incident report first.");
+      return;
+    }
+
+    if (busy || transcribing) return;
 
     setBusy(true);
     setError(null);
 
     try {
-      const result = await api.extract(transcript);
+      const result = await api.extract(cleanedTranscript);
+
+      setSource(reportSource);
       setAnalysis(result);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -82,15 +141,19 @@ export default function ReportPage() {
     }
   }
 
-  // Confirmation screen
+  // Confirmation screen.
   if (analysis) {
     return (
       <ConfirmDetails
         analysis={analysis}
         machines={machines}
+        source={source}
         onBack={() => setAnalysis(null)}
         onCreated={(incident) => {
-          api.announce(incident.id).then(play).catch(() => {});
+          api.announce(incident.id)
+            .then(play)
+            .catch(() => {});
+
           router.push(`/incidents/${incident.id}`);
         }}
       />
@@ -194,6 +257,7 @@ export default function ReportPage() {
 
           {/* FEATURES */}
           <div className="mt-7 flex flex-wrap justify-center gap-6 text-xs font-medium text-slate-600">
+
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="h-4 w-4 text-emerald-500" />
               Safety-first detection
@@ -203,8 +267,8 @@ export default function ReportPage() {
               <AudioLines className="h-4 w-4 text-violet-500" />
               Gnani Prisma v3.0
             </span>
-          </div>
 
+          </div>
         </CardContent>
       </Card>
 
@@ -215,6 +279,7 @@ export default function ReportPage() {
           className="rounded-2xl border-violet-200 bg-white"
         >
           <CardContent className="space-y-3 p-5">
+
             <div className="flex items-center gap-2">
               <Loader2 className="h-5 w-5 animate-spin text-violet-600" />
 
@@ -225,6 +290,7 @@ export default function ReportPage() {
 
             <Skeleton className="h-12 w-full" />
             <Skeleton className="h-3 w-2/3" />
+
           </CardContent>
         </Card>
       )}
@@ -252,13 +318,12 @@ export default function ReportPage() {
 
             <div className="rounded-xl border border-violet-100 bg-violet-50 p-4">
               <p className="text-base leading-7 text-slate-800">
-                {voice.transcript
-                  ? `“${voice.transcript}”`
-                  : "No speech detected. Please try again."}
+                “{voice.transcript}”
               </p>
             </div>
 
             <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+
               <span className="rounded-lg bg-slate-100 px-3 py-2">
                 Prisma v3.0
               </span>
@@ -274,6 +339,7 @@ export default function ReportPage() {
               <span className="rounded-lg bg-slate-100 px-3 py-2">
                 {voice.stt_ms} ms
               </span>
+
             </div>
 
             {voice.cached && (
@@ -292,8 +358,14 @@ export default function ReportPage() {
               </Button>
 
               <Button
-                onClick={() => understand(voice.transcript)}
-                disabled={busy || !voice.transcript}
+                onClick={() =>
+                  understand(voice.transcript, audioSource)
+                }
+                disabled={
+                  busy ||
+                  transcribing ||
+                  !voice.transcript?.trim()
+                }
                 className="bg-violet-600 text-white hover:bg-violet-700"
               >
                 {busy ? "Understanding..." : "Continue"}
@@ -306,7 +378,10 @@ export default function ReportPage() {
 
       {/* ERROR MESSAGE */}
       {error && (
-        <div className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
+        >
           <AlertCircle className="h-5 w-5 shrink-0" />
           <p>{error}</p>
         </div>
@@ -347,18 +422,19 @@ export default function ReportPage() {
             rows={4}
             placeholder='Example: "Machine 14 mein smoke aa raha hai..."'
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={(event) => setText(event.target.value)}
             disabled={busy || transcribing}
             className="resize-none rounded-xl border-slate-200 bg-slate-50 p-4"
           />
 
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+
             <p className="text-xs text-slate-400">
               Include the machine number and symptoms if known.
             </p>
 
             <Button
-              onClick={() => understand(text)}
+              onClick={() => understand(text, "typed")}
               disabled={busy || transcribing || !text.trim()}
               className="rounded-xl bg-violet-600 px-6 text-white hover:bg-violet-700"
             >
@@ -374,8 +450,8 @@ export default function ReportPage() {
                 </>
               )}
             </Button>
-          </div>
 
+          </div>
         </CardContent>
       </Card>
 

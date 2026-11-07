@@ -1,12 +1,29 @@
 """Request and response shapes for the API (Pydantic)."""
+
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 Severity = Literal["low", "medium", "high", "critical"]
-Status = Literal["open", "acknowledged", "in_progress", "resolved"]
-IncidentType = Literal["smoke", "gas_leak", "sparks_fire", "vibration", "noise", "oil_leak", "overheating", "other"]
+
+Status = Literal[
+    "open",
+    "acknowledged",
+    "in_progress",
+    "resolved",
+]
+
+IncidentType = Literal[
+    "smoke",
+    "gas_leak",
+    "sparks_fire",
+    "vibration",
+    "noise",
+    "oil_leak",
+    "overheating",
+    "other",
+]
 
 
 class MachineOut(BaseModel):
@@ -42,7 +59,7 @@ class IncidentOut(BaseModel):
     status: str
     escalated: bool
     severity_source: str | None
-    confidence: float | None  # self-reported by the LLM, not measured
+    confidence: float | None
     related_incident_id: str | None
     created_at: datetime
 
@@ -61,12 +78,12 @@ class IncidentDetailOut(IncidentOut):
 class IncidentCreate(BaseModel):
     machine_id: str | None = None
     incident_type: IncidentType
-    severity: Severity  # what the worker confirmed; the server still applies the safety rules
-    symptoms: list[str] = []
-    transcript: str = ""  # the RAW transcript (rules run on it again on the server)
+    severity: Severity
+    symptoms: list[str] = Field(default_factory=list)
+    transcript: str = ""
     language: str | None = None
     related_incident_id: str | None = None
-    analysis: dict | None = None  # the /api/incidents/extract response the worker confirmed
+    analysis: dict | None = None
 
 
 class StatusUpdate(BaseModel):

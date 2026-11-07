@@ -1,55 +1,165 @@
 # PlantPulse AI — deterministic safety rules.
 #
-# If ANY keyword below appears in the raw transcript or in the extracted symptoms, or the extracted
-# incident_type is listed, the incident becomes CRITICAL + ESCALATED (simulated alert).
-# The LLM can never lower or suppress this.
+# If ANY safety keyword appears in the raw transcript or extracted symptoms,
+# or a specifically designated incident_type matches, the incident becomes
+# CRITICAL + ESCALATED.
 #
-# Matching: both the text and every keyword go through app/text_norm.normalize() first (lowercase,
-# Devanagari mark variants unified, repeated letters collapsed, common spellings mapped), then whole words
-# are compared. So "dhuaan", "dhua", "धुआँ" and "धुंआ" all match. Variants are still listed explicitly so a
-# reviewer can see what is covered.
+# The LLM can never lower or suppress a deterministic safety alert.
 #
-# Rules deliberately ignore negation ("smoke nahi hai" still fires): a false alarm costs a walk to the
-# machine; a missed fire costs far more. `except` lists harmless compound nouns that are removed before
-# matching (e.g. "fire extinguisher"), so routine talk about safety equipment does not ring the alarm.
+# Matching uses app/text_norm.normalize() and whole-word comparisons.
+#
+# Negation deliberately does not suppress safety alerts.
+#
+# Exceptions remove harmless compound nouns before matching.
 
 rules:
   - id: S1
     name: Smoke
     incident_types: [smoke]
-    keywords: [smoke, smoky, smoking, dhuan, dhuaan, dhua, dhuwan, dhuva, dhuen,
-               धुआं, धुआँ, धुंआ, धुआ, धुंए, धुएं, धुएँ, धुवाँ,
-               smoke aa raha, smoke nikal, dhuan nikal, धुआं निकल]
-    except: [smoke detector, no smoking, smoking area, smoking zone]
+    keywords:
+      - smoke
+      - smoky
+      - smoking
+      - dhuan
+      - dhuaan
+      - dhua
+      - dhuwan
+      - dhuva
+      - dhuen
+      - धुआं
+      - धुआँ
+      - धुंआ
+      - धुआ
+      - धुंए
+      - धुएं
+      - धुएँ
+      - धुवाँ
+      - smoke aa raha
+      - smoke nikal
+      - dhuan nikal
+      - धुआं निकल
+    except:
+      - smoke detector
+      - no smoking
+      - smoking area
+      - smoking zone
 
   - id: S2
     name: Gas leak / chemical smell
     incident_types: [gas_leak]
-    # A bare "gas" does NOT fire ("gas cylinder ka order" is routine); it needs leak/smell context.
-    keywords: [gas leak, gas leakage, gas ka leak, leaking gas, gas leaking, gas nikal, gas aa rahi, gas aa raha,
-               gas ki smell, gas ki badbu, gas ki boo, gas ki gandh, gas smell, smell of gas, gas phail,
-               cylinder leak, cylinder se gas, badbu, chemical smell, chemical ki smell, ammonia, fumes,
-               गैस लीक, गैस निकल, गैस आ रही, गैस की बदबू, गैस की गंध, गैस की स्मेल, बदबू, अमोनिया, केमिकल की बदबू]
+    keywords:
+      - gas leak
+      - gas leakage
+      - gas ka leak
+      - leaking gas
+      - gas leaking
+      - gas nikal
+      - gas aa rahi
+      - gas aa raha
+      - gas ki smell
+      - gas ki badbu
+      - gas ki boo
+      - gas ki gandh
+      - gas smell
+      - smell of gas
+      - gas phail
+      - cylinder leak
+      - cylinder se gas
+      - badbu
+      - chemical smell
+      - chemical ki smell
+      - ammonia
+      - fumes
+      - गैस लीक
+      - गैस निकल
+      - गैस आ रही
+      - गैस की बदबू
+      - गैस की गंध
+      - गैस की स्मेल
+      - बदबू
+      - अमोनिया
+      - केमिकल की बदबू
 
   - id: S3
     name: Sparks / electric
-    incident_types: [sparks_fire]
-    keywords: [spark, sparks, sparking, chingari, chingaari, chingariyan, short circuit, shot circuit,
-               current maar, current lag, current aa raha, current de raha, karant maar, karant lag,
-               electric shock, shock lag,
-               चिंगारी, चिंगारियां, चिंगारियाँ, शॉर्ट सर्किट, करंट, करंट मार, करंट लग]
+    keywords:
+      - spark
+      - sparks
+      - sparking
+      - chingari
+      - chingaari
+      - chingariyan
+      - short circuit
+      - shot circuit
+      - current maar
+      - current lag
+      - current aa raha
+      - current de raha
+      - karant maar
+      - karant lag
+      - electric shock
+      - shock lag
+      - चिंगारी
+      - चिंगारियां
+      - चिंगारियाँ
+      - शॉर्ट सर्किट
+      - करंट
+      - करंट मार
+      - करंट लग
 
   - id: S4
     name: Fire
-    incident_types: [sparks_fire]
-    keywords: [fire, flame, flames, on fire, aag, aag lag, aag lagi, aag lag gayi, jal raha, jal rahi, jal gaya,
-               jal gayi, lapat, lapte, blaze,
-               आग, आग लग, आग लगी, जल रहा, जल रही, जल गया, जल गई, लपट, लपटें]
-    except: [fire extinguisher, fire drill, fire exit, fire safety, fire bucket]
+    keywords:
+      - fire
+      - flame
+      - flames
+      - on fire
+      - aag
+      - aag lag
+      - aag lagi
+      - aag lag gayi
+      - jal raha
+      - jal rahi
+      - jal gaya
+      - jal gayi
+      - lapat
+      - lapte
+      - blaze
+      - आग
+      - आग लग
+      - आग लगी
+      - जल रहा
+      - जल रही
+      - जल गया
+      - जल गई
+      - लपट
+      - लपटें
+    except:
+      - fire extinguisher
+      - fire drill
+      - fire exit
+      - fire safety
+      - fire bucket
 
   - id: S5
     name: Burning smell
-    incident_types: []
-    keywords: [burning smell, burning, smell of burning, burnt smell, burnt, jalne ki smell, jalne ki badbu,
-               jalne ki boo, jalne ki gandh, jalne jaisi smell, jalne ki, plastic jal, wire jal,
-               जलने की बदबू, जलने की गंध, जलने की स्मेल, जलने की बू, जलने जैसी, जलने की]
+    keywords:
+      - burning smell
+      - burning
+      - smell of burning
+      - burnt smell
+      - burnt
+      - jalne ki smell
+      - jalne ki badbu
+      - jalne ki boo
+      - jalne ki gandh
+      - jalne jaisi smell
+      - jalne ki
+      - plastic jal
+      - wire jal
+      - जलने की बदबू
+      - जलने की गंध
+      - जलने की स्मेल
+      - जलने की बू
+      - जलने जैसी
+      - जलने की
