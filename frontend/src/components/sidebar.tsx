@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, ClipboardList, Gauge, LayoutDashboard, Mic, Settings, Users } from "lucide-react";
+import { Activity, ChartLine, ClipboardList, Gauge, LayoutDashboard, Mic, Settings, Users } from "lucide-react";
 
 const LINKS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/incidents", label: "Incidents", icon: ClipboardList },
   { href: "/handover", label: "Shift Handover", icon: Users },
   { href: "/machine-insights", label: "Machine Insights", icon: Gauge },
+  { href: "/performance", label: "AI Performance", icon: ChartLine },
 ];
 
 function NavLink({ href, label, icon: Icon, active }: { href: string; label: string; icon: typeof Mic; active: boolean }) {

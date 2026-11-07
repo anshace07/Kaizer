@@ -148,10 +148,22 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     cache: "no-store",
   });
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`${res.status} ${res.statusText}: ${body}`);
+    throw new Error(await errorMessage(res));
   }
   return res.json();
+}
+
+// FastAPI errors look like {"detail": "text"} or {"detail": [{"msg": "..."}]} — show that text.
+async function errorMessage(res: Response): Promise<string> {
+  const body = await res.text();
+  try {
+    const detail = JSON.parse(body).detail;
+    if (typeof detail === "string") return detail;
+    if (Array.isArray(detail) && detail[0]?.msg) return String(detail[0].msg);
+  } catch {
+    // not JSON — fall through
+  }
+  return `${res.status} ${res.statusText}${body ? `: ${body}` : ""}`;
 }
 
 export type Transcription = {

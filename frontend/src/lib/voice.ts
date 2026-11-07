@@ -1,26 +1,27 @@
 "use client";
 
 // Everything PlantPulse says out loud goes through here.
-// - Mute is remembered in localStorage (wrapped in try/catch: private windows can block it).
+// - There is no mute: a safety voice must not be silenced by a forgotten setting.
 // - Audio NEVER blocks the flow: failures are swallowed and the text is still shown in the voice toast.
 import { API_URL, api, type Speech } from "./api";
 
-const MUTE_KEY = "plantpulse-muted";
+// Old builds had a mute toggle that saved this key. The toggle is gone, so the key is
+// removed once — otherwise a stale "1" would silence voice and the alarm with no way back.
+const OLD_MUTE_KEY = "plantpulse-muted";
 type Listener = () => void;
 
-let muted = false;
-let loaded = false;
+let cleaned = false;
 let last: Speech | null = null; // what was said most recently (shown in the toast)
 let current: HTMLAudioElement | null = null;
 const listeners = new Set<Listener>();
 
-function load() {
-  if (loaded || typeof window === "undefined") return;
-  loaded = true;
+function clearOldMuteFlag() {
+  if (cleaned || typeof window === "undefined") return;
+  cleaned = true;
   try {
-    muted = window.localStorage.getItem(MUTE_KEY) === "1";
+    window.localStorage.removeItem(OLD_MUTE_KEY);
   } catch {
-    muted = false;
+    // storage blocked — nothing to clear
   }
 }
 
@@ -33,36 +34,21 @@ export function subscribe(fn: Listener) {
   return () => listeners.delete(fn);
 }
 
-export function isMuted() {
-  load();
-  return muted;
-}
-
 export function lastSpoken() {
   return last;
-}
-
-export function setMuted(value: boolean) {
-  muted = value;
-  try {
-    window.localStorage.setItem(MUTE_KEY, value ? "1" : "0");
-  } catch {
-    // storage blocked: mute still works for this page view
-  }
-  if (value) current?.pause();
-  notify();
 }
 
 export function audioSrc(speech: Speech) {
   return speech.audio_url ? `${API_URL}${speech.audio_url}` : null;
 }
 
-/** Show the text and (unless muted) play the audio. Never throws. */
+/** Show the text and play the audio. Never throws. */
 export function play(speech: Speech) {
+  clearOldMuteFlag();
   last = speech;
   notify();
   const src = audioSrc(speech);
-  if (isMuted() || !src) return;
+  if (!src) return;
   try {
     current?.pause();
     current = new Audio(src);

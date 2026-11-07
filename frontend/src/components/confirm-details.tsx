@@ -14,6 +14,7 @@ import {
   ArrowLeft,
   Keyboard,
   Volume2,
+  ShieldAlert,
 } from "lucide-react";
 
 import {
@@ -24,7 +25,7 @@ import {
   type Severity,
 } from "@/lib/api";
 
-import { capitalize } from "@/lib/format";
+import { capitalize, DECIDED_BY, INCIDENT_TYPES } from "@/lib/format";
 import { say } from "@/lib/voice";
 
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,9 @@ export function ConfirmDetails({
   const [editing, setEditing] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // A safety rule fired -> Critical. Nobody can lower it on this screen.
+  const ruleLocked = analysis.rule_hits.length > 0;
 
   const selectedMachine = machines.find(
     (machine) => machine.id === machineId
@@ -153,28 +157,27 @@ export function ConfirmDetails({
     }
   }
 
-  async function createIncident() {
+  // withoutMachine: only offered when a safety rule fired — a danger
+  // report must never be blocked just because the machine is unknown.
+  async function createIncident(withoutMachine = false) {
     if (creating) return;
 
-    if (!machineId) {
-      setError(
-        "Please select the correct machine before creating the incident."
+    if (!withoutMachine) {
+      if (!machineId) {
+        setError(
+          "Please select the correct machine before creating the incident."
+        );
+        return;
+      }
+
+      const validMachine = machines.find(
+        (machine) => machine.id === machineId
       );
-      return;
-    }
 
-    if (!incidentType.trim()) {
-      setError("Please enter an incident type.");
-      return;
-    }
-
-    const validMachine = machines.find(
-      (machine) => machine.id === machineId
-    );
-
-    if (!validMachine) {
-      setError("Please select a valid machine.");
-      return;
+      if (!validMachine) {
+        setError("Please select a valid machine.");
+        return;
+      }
     }
 
     setCreating(true);
@@ -182,9 +185,9 @@ export function ConfirmDetails({
 
     try {
       const incident = await api.createIncident({
-        machine_id: machineId,
+        machine_id: withoutMachine ? null : machineId,
         incident_type: incidentType,
-        severity,
+        severity: ruleLocked ? "critical" : severity,
         symptoms: symptoms
           .split(",")
           .map((item) => item.trim())
@@ -231,6 +234,34 @@ export function ConfirmDetails({
           that the extracted details are correct.
         </p>
       </div>
+
+      {/* SAFETY RULE BOX */}
+      {ruleLocked && (
+        <div className="flex gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-800">
+          <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" />
+          <div className="space-y-1 text-sm">
+            <p className="font-bold">
+              Safety rule triggered → Critical (simulated alert will be raised)
+            </p>
+            {analysis.rule_hits.map((hit) => (
+              <p key={hit.rule_id}>
+                Rule {hit.rule_id} ({hit.rule_name}): &ldquo;{hit.keyword}&rdquo; found in {hit.source}
+              </p>
+            ))}
+            <p className="text-xs text-red-700">
+              Fixed safety rules cannot be lowered by the AI or on this screen.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* LLM FALLBACK BOX */}
+      {analysis.fallback_reason && (
+        <div className="flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          {analysis.fallback_reason}
+        </div>
+      )}
 
       {/* CONFIRMATION CARD */}
       <Card className="overflow-hidden rounded-3xl border border-violet-100 bg-white shadow-sm">
@@ -416,18 +447,23 @@ export function ConfirmDetails({
                   </div>
 
                   {editing ? (
-                    <input
+                    <select
                       value={incidentType}
                       onChange={(event) =>
                         setIncidentType(event.target.value)
                       }
                       className="w-full rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-200"
-                    />
+                    >
+                      {Object.entries(INCIDENT_TYPES).map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
                   ) : (
                     <span className="font-bold text-slate-900">
-                      {capitalize(
-                        incidentType.replaceAll("_", " ")
-                      )}
+                      {INCIDENT_TYPES[incidentType] ??
+                        capitalize(incidentType.replaceAll("_", " "))}
                     </span>
                   )}
                 </div>
@@ -463,7 +499,8 @@ export function ConfirmDetails({
                     Severity
                   </div>
 
-                  {editing ? (
+                  <div className="space-y-1">
+                  {editing && !ruleLocked ? (
                     <select
                       value={severity}
                       onChange={(event) =>
@@ -488,6 +525,15 @@ export function ConfirmDetails({
                       {capitalize(severity)}
                     </span>
                   )}
+                  <p className="text-xs text-slate-500">
+                    Decided by:{" "}
+                    {DECIDED_BY[analysis.severity_decided_by] ??
+                      analysis.severity_decided_by}
+                    {extraction.suggested_severity &&
+                      ` · AI suggested ${extraction.suggested_severity}`}
+                    {ruleLocked && " · locked by safety rule"}
+                  </p>
+                  </div>
                 </div>
 
                 {/* SYMPTOMS */}
@@ -631,12 +677,23 @@ export function ConfirmDetails({
               {editing ? "Done Editing" : "Edit"}
             </Button>
 
+            {ruleLocked && (
+              <Button
+                variant="outline"
+                onClick={() => createIncident(true)}
+                disabled={creating || editing}
+                className="rounded-xl border-red-300 bg-red-50 px-6 py-5 font-semibold text-red-700 hover:bg-red-100"
+              >
+                <ShieldAlert className="mr-2 h-4 w-4" />
+                Machine not known — report anyway
+              </Button>
+            )}
+
             <Button
-              onClick={createIncident}
+              onClick={() => createIncident()}
               disabled={
                 creating ||
                 editing ||
-                !incidentType.trim() ||
                 machineMissing
               }
               className="rounded-xl bg-violet-600 px-8 py-5 font-semibold text-white shadow-lg shadow-violet-200 hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"

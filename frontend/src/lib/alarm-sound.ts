@@ -1,11 +1,8 @@
 "use client";
 
-import { isMuted } from "./voice";
-
 // Short two-tone alert beep made with the Web Audio API (no audio file, no Gnani credits).
-// Respects the header's Voice on/off toggle. Never throws.
+// Always plays (there is no mute for safety alerts). Never throws.
 export function playAlarmSound() {
-  if (isMuted()) return;
   try {
     const ctx = new AudioContext();
     const tones = [880, 660, 880];

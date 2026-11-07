@@ -22,12 +22,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 async function loadDashboard() {
-  const [stats, incidents] = await Promise.all([
+  const [stats, incidents, machines] = await Promise.all([
     api.stats(),
     api.incidents(),
+    api.machines(),
   ]);
 
-  return { stats, incidents };
+  return { stats, incidents, machines };
 }
 
 export default function DashboardPage() {
@@ -75,12 +76,18 @@ export default function DashboardPage() {
     },
   ];
 
-  // Production units
+  // Plant areas come from the machines' locations, so every area
+  // (including the Utility Block) shows up.
   const units = [
-    { name: "Unit A", location: "Production Unit 1" },
-    { name: "Unit B", location: "Production Unit 2" },
-    { name: "Unit C", location: "Production Unit 3" },
-  ];
+    ...new Set((data?.machines ?? []).map((machine) => machine.location)),
+  ]
+    .sort()
+    .map((location) => ({
+      location,
+      machineCount: (data?.machines ?? []).filter(
+        (machine) => machine.location === location
+      ).length,
+    }));
 
   // Calculate unit status
   function getUnitStatus(location: string) {
@@ -428,7 +435,7 @@ export default function DashboardPage() {
             <div>
 
               <h3 className="mb-2 text-sm font-extrabold text-slate-800">
-                Production Units
+                Plant Areas
               </h3>
 
               <div className="overflow-hidden rounded-xl border border-slate-100">
@@ -440,7 +447,7 @@ export default function DashboardPage() {
                   return (
 
                     <div
-                      key={unit.name}
+                      key={unit.location}
                       className={`flex items-center justify-between gap-2 px-3 py-3 ${
                         index !== 0 ? "border-t border-slate-100" : ""
                       }`}
@@ -449,11 +456,11 @@ export default function DashboardPage() {
                       <div className="min-w-0">
 
                         <p className="text-sm font-bold text-slate-700">
-                          {unit.name}
+                          {unit.location}
                         </p>
 
                         <p className="text-xs font-medium text-slate-500">
-                          {unit.location}
+                          {unit.machineCount} machines
                         </p>
 
                       </div>

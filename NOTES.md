@@ -172,3 +172,16 @@
   A: It identifies possible machine candidates, asks the worker to confirm the correct machine, and prevents incident creation until a valid machine is selected.
 - Q: How do you prevent an LLM from lowering a Critical safety alert?
   A: Deterministic Python safety rules independently evaluate the report and enforce severity, so the LLM cannot downgrade a rule-triggered Critical alert.
+
+## Phase 7.1 — Safety regression fix + restored confirm-screen features (8 Nov 2026)
+
+**What was built and why**
+- Commit 28b8e88 (YAML rewrite) had silently dropped `incident_types: [sparks_fire]` from rules S3 and S4, so an extracted "sparks_fire" with no keyword in the text raised no alert. It is restored, with a test ("panel mein bijli ka jhatka lag raha hai" + sparks_fire → S3 + S4, Critical).
+- The server now never blocks a danger report: safety rules run before the "pick a machine" check, so a rule hit with an unknown machine still saves (Critical, escalated, "Machine not identified" in the timeline). Workers may pick any real machine, even one we didn't suggest (logged as `worker_override`). A bare number before a unit word ("5 minute", "10 baje", "40 degree") is no longer read as a machine.
+- The redesign had dropped working UI: the red safety-rule box, the LLM-fallback box, "Decided by", the severity lock, the incident-type dropdown, the AI Performance page and real Settings (models + dev reset). All are back in the new look; API errors show the backend's message; the dashboard lists every plant area from the machine data; the old hidden mute flag is cleared. 175 backend tests pass; `tsc` has no errors.
+
+**Likely interview questions**
+- *Q: How did you catch that a refactor removed a safety trigger, and how do you stop it happening again?*
+  A: By diffing the rules file against the commit before the YAML rewrite: S3/S4 had lost their `incident_types`. Now a test checks that the sparks_fire type alone fires S3 and S4, so if anyone drops it again the test suite fails.
+- *Q: Why let a worker save a report without a machine?*
+  A: Only when a fixed safety rule fired. A worker smelling burning shouldn't be stuck on a form because they don't know the machine number. The alert goes out and the supervisor finds the machine. Without a rule hit we still require a machine, so routine reports stay clean.
