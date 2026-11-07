@@ -57,3 +57,18 @@
   A: The LLM is probabilistic. It can be down, slow, or simply wrong, and for smoke, gas or fire a miss is far worse than a false alarm. The rules are a few lines of plain Python anyone can audit. They run on the raw words the worker said, and the code makes it impossible for the LLM's answer to lower them. Our test with the LLM mocked to say "low" for "dhuan" proves it stays Critical.
 - *Q: What does "model confidence (self-reported)" mean — is it accurate?*
   A: It's the number the LLM says about itself, so it is not a measured accuracy and we label it that way. We only use it as a hint. The real safeguards are the confirmation question when the machine is unclear and the fixed safety rules. Measured accuracy will come from the evaluation phase on the test utterances.
+
+## Phase 5 — AI investigation
+
+**What was built and why**
+- `app/agent/tools.py` has 4 plain, tested functions: `get_machine_history`, `check_open_tickets`, `get_maintenance_schedule` and `search_sop` (keyword search over the `## SOP-1xx` sections of `data/sop.md`). The LLM never touches the database. It can only name one of these tools, and `run_tool()` checks the name and the machine ID before anything runs.
+- `app/agent/investigate.py` runs as a FastAPI background task right after an incident is saved, so creating stays fast (~0.3–0.4 s measured). It uses OpenAI-style function calling restricted to the 4 tools, max 5 calls. If tool calling fails, or the model answers without calling a tool, it calls all 4 tools in a fixed order instead. Then the LLM writes 3 findings, 1 action and the SOP id from the tool results only. The SOP id must come from the search results; if the LLM is down, a plain template builds the summary. Every tool call is a timeline event (tool, args, result, ms) and the path used is recorded. The investigation never writes severity (tested).
+- A new report for the same machine within 10 minutes is linked as "Related to INC-xxxx" with Merge / Keep separate buttons; nothing is merged automatically. Merging can only raise the original's severity and carries over rule hits, so merging never hides an alert. Merging into an already-resolved incident is blocked.
+
+**Measured (7 Nov 2026, real Gemini `gemini-3.6-flash`, typed report "Machine 14 mein smoke aa raha hai"):** path = tool calling, with all 4 tools called in one turn, so 2 LLM calls per investigation. The investigation took 6.2 s (INC-1010) and 14.5 s (INC-1011): same work, single runs, so LLM latency varies a lot. Each tool took 1–5 ms. Repeating the report gave "Related to INC-1010". This phase used 6 real LLM calls and 0 Gnani calls. Tests: 24 passed, LLM always mocked, and `conftest.py` blocks any real LLM call.
+
+**Likely interview questions**
+- *Q: Why give the LLM tools instead of pasting all the data into the prompt?*
+  A: The tools are the only door to the data. They're small, tested, read-only functions with checked arguments, so the model can't run SQL or read other machines' data by accident. Every call is logged with its timing, so a supervisor can see exactly what evidence the recommendation came from. With 16 machines we could paste everything, but in a real plant there would be years of history and the prompt would explode.
+- *Q: What if the model makes things up in the findings?*
+  A: We limit it three ways. The prompt says to use only tool results and to say when evidence is missing. The SOP id is checked against the actual search results and replaced if invented. The raw evidence (history, tickets, service date, SOP text) is shown next to the findings so a human can check them. The findings are advice only: severity and alerts come from the fixed safety rules, never from the investigation.

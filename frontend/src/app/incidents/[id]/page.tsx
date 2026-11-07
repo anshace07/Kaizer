@@ -3,12 +3,12 @@
 import { useCallback, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { BookOpen, Bot, ShieldAlert } from "lucide-react";
+import { Link2, Loader2, ShieldAlert } from "lucide-react";
 import { api, type Status } from "@/lib/api";
 import { capitalize, DECIDED_BY, formatConfidence, formatDateTime, typeLabel } from "@/lib/format";
 import { useAutoRefresh } from "@/lib/use-auto-refresh";
 import { EscalatedBadge, SeverityBadge, StatusBadge } from "@/components/badges";
-import { EmptyState } from "@/components/empty-state";
+import { InvestigationPanel, SopPanel } from "@/components/investigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,7 +34,8 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 export default function IncidentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const load = useCallback(() => api.incident(id), [id]);
-  const { data: inc, error, reload } = useAutoRefresh(load, 5000);
+  // 2 s refresh so the background investigation shows up live.
+  const { data: inc, error, reload } = useAutoRefresh(load, 2000);
   const [busy, setBusy] = useState(false);
 
   // The backend changes the status AND writes a timeline event in one call.
@@ -42,6 +43,17 @@ export default function IncidentDetailPage() {
     setBusy(true);
     try {
       await api.setStatus(id, status, "by supervisor (dashboard)");
+      await reload();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // Possible duplicate: the supervisor decides. Nothing is ever merged automatically.
+  async function decideDuplicate(action: "merge" | "keep_separate") {
+    setBusy(true);
+    try {
+      await api.decideDuplicate(id, action);
       await reload();
     } finally {
       setBusy(false);
@@ -67,6 +79,11 @@ export default function IncidentDetailPage() {
             <SeverityBadge severity={inc.severity} />
             <StatusBadge status={inc.status} />
             {inc.escalated && <EscalatedBadge />}
+            {inc.investigation?.status === "running" && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-violet-100 px-2.5 py-0.5 text-xs text-[#6d4ae8]">
+                <Loader2 className="size-3 animate-spin" /> Investigating…
+              </span>
+            )}
           </div>
           <p className="text-sm text-slate-500">Reported {formatDateTime(inc.created_at)}</p>
         </div>
@@ -83,6 +100,31 @@ export default function IncidentDetailPage() {
           ))}
         </div>
       </div>
+
+      {inc.related_incident_id && inc.duplicate_status && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4">
+          <p className="flex items-center gap-2 text-sm text-amber-900">
+            <Link2 className="size-4" />
+            Related to{" "}
+            <Link href={`/incidents/${inc.related_incident_id}`} className="font-semibold underline">
+              {inc.related_incident_id}
+            </Link>
+            {inc.duplicate_status === "pending" && " — same machine reported within 10 minutes. Same problem?"}
+            {inc.duplicate_status === "merged" && ` — merged into ${inc.merged_into}.`}
+            {inc.duplicate_status === "kept_separate" && " — kept as a separate incident."}
+          </p>
+          {inc.duplicate_status === "pending" && (
+            <div className="flex gap-2">
+              <Button size="sm" disabled={busy} onClick={() => decideDuplicate("merge")}>
+                Merge
+              </Button>
+              <Button size="sm" variant="outline" disabled={busy} onClick={() => decideDuplicate("keep_separate")}>
+                Keep separate
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       <Tabs defaultValue="overview">
         <TabsList>
@@ -145,19 +187,11 @@ export default function IncidentDetailPage() {
             </TabsContent>
 
             <TabsContent value="investigation">
-              <EmptyState
-                icon={Bot}
-                title="No AI investigation yet"
-                text="Machine history checks and AI recommendations will appear here once the reasoning step is added."
-              />
+              <InvestigationPanel inv={inc.investigation} />
             </TabsContent>
 
             <TabsContent value="sop">
-              <EmptyState
-                icon={BookOpen}
-                title="No SOP matched yet"
-                text="The relevant safety-manual section and recommended actions will appear here."
-              />
+              <SopPanel inv={inc.investigation} />
             </TabsContent>
 
             <TabsContent value="timeline">

@@ -4,18 +4,19 @@ Start (from the backend folder):  uvicorn app.main:app --reload --port 8000
 """
 from collections import Counter
 from contextlib import asynccontextmanager
-from datetime import timedelta
+from datetime import timedelta, timezone
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from . import llm
-from .db import BACKEND_DIR, get_db
+from .agent.investigate import run_investigation
+from .db import BACKEND_DIR, SessionLocal, get_db
 from .models import Incident, IncidentEvent, Machine, now_utc
 from .safety import rules
-from .schemas import (ExtractRequest, IncidentCreate, IncidentDetailOut, IncidentOut, MachineOut, Severity, Status,
+from .schemas import (DuplicateDecision, ExtractRequest, IncidentCreate, IncidentDetailOut, IncidentOut, MachineOut, Severity, Status,
                       StatusUpdate)
 from .seed import seed_if_empty
 from .services import audio, extract, stt
@@ -46,6 +47,26 @@ def get_incident_or_404(db: Session, incident_id: str) -> Incident:
     if inc is None:
         raise HTTPException(404, f"Incident {incident_id} not found")
     return inc
+
+
+def get_session_factory():
+    """The background investigation opens its own DB sessions (tests swap this out)."""
+    return SessionLocal
+
+
+DUPLICATE_WINDOW = timedelta(minutes=10)
+
+
+def recent_report_for_machine(db: Session, machine_id: str | None) -> Incident | None:
+    """The newest incident for the same machine reported in the last 10 minutes, if any."""
+    if not machine_id:
+        return None
+    latest = (db.query(Incident).filter(Incident.machine_id == machine_id, Incident.merged_into.is_(None))
+              .order_by(Incident.created_at.desc()).first())
+    if latest is None:
+        return None
+    created = latest.created_at if latest.created_at.tzinfo else latest.created_at.replace(tzinfo=timezone.utc)
+    return latest if now_utc() - created <= DUPLICATE_WINDOW else None
 
 
 def next_incident_id(db: Session) -> str:
@@ -131,7 +152,8 @@ def get_incident(incident_id: str, db: Session = Depends(get_db)):
 
 
 @app.post("/api/incidents", response_model=IncidentDetailOut, status_code=201)
-def create_incident(body: IncidentCreate, db: Session = Depends(get_db)):
+def create_incident(body: IncidentCreate, background: BackgroundTasks, db: Session = Depends(get_db),
+                    session_factory=Depends(get_session_factory)):
     """Save what the worker confirmed. The safety rules run AGAIN here on the raw transcript and the
     final fields, so neither the LLM nor an edit on the Confirm screen can lower a rule-triggered alert."""
     location = None
@@ -155,6 +177,9 @@ def create_incident(body: IncidentCreate, db: Session = Depends(get_db)):
         suggested_by = "worker"
     severity, decided_by = rules.decide_severity(body.severity, hits, suggested_by)
 
+    # Possible duplicate: same machine within 10 minutes. Linked, never auto-merged — the supervisor decides.
+    duplicate_of = None if body.related_incident_id else recent_report_for_machine(db, body.machine_id)
+
     inc = Incident(
         id=next_incident_id(db), location=location, status="open",
         machine_id=body.machine_id, incident_type=body.incident_type, symptoms=body.symptoms,
@@ -163,6 +188,9 @@ def create_incident(body: IncidentCreate, db: Session = Depends(get_db)):
         confidence=extraction.get("extraction_confidence"), extractor=extractor,
         extracted=analysis or None, rule_hits=hits,
     )
+    if duplicate_of:
+        inc.related_incident_id = duplicate_of.id
+        inc.duplicate_status = "pending"
     # Timeline: every step is a timestamped event, so the decision can be audited later.
     log = [("created", f"Incident reported · extractor: {extractor}")]
     if analysis.get("fallback_reason"):
@@ -176,11 +204,52 @@ def create_incident(body: IncidentCreate, db: Session = Depends(get_db)):
                             + (f" (LLM suggested {llm_severity})" if llm_severity else "")))
     if hits:
         log.append(("escalated", "Escalated · Simulated alert raised (the app never controls machines)"))
+    if duplicate_of:
+        log.append(("related", f"Related to {duplicate_of.id} (same machine {body.machine_id}, reported within "
+                               "10 min) — waiting for supervisor: merge or keep separate"))
     now = now_utc()  # one clock reading + 1 µs steps keeps the timeline in this exact order
     inc.events = [IncidentEvent(action=a, detail=d, timestamp=now + timedelta(microseconds=i))
                   for i, (a, d) in enumerate(log)]
 
     db.add(inc)
+    db.commit()
+    db.refresh(inc)
+    # Runs after the response is sent, so creating an incident stays fast.
+    background.add_task(run_investigation, session_factory, inc.id)
+    return inc
+
+
+@app.post("/api/incidents/{incident_id}/duplicate", response_model=IncidentDetailOut)
+def decide_duplicate(incident_id: str, body: DuplicateDecision, db: Session = Depends(get_db)):
+    """Supervisor's choice for a possible duplicate. Merging can only RAISE the original's severity."""
+    inc = get_incident_or_404(db, incident_id)
+    if inc.duplicate_status != "pending" or not inc.related_incident_id:
+        raise HTTPException(400, f"{incident_id} is not waiting for a duplicate decision")
+    original = get_incident_or_404(db, inc.related_incident_id)
+    if body.action == "merge" and original.status == "resolved":
+        raise HTTPException(400, f"{original.id} is already resolved — keep this report separate instead")
+
+    if body.action == "keep_separate":
+        inc.duplicate_status = "kept_separate"
+        inc.events.append(IncidentEvent(action="duplicate_decision",
+                                        detail=f"Supervisor kept this separate from {original.id}"))
+    else:
+        inc.duplicate_status, inc.merged_into, old_status = "merged", original.id, inc.status
+        inc.status = "resolved"
+        inc.events.append(IncidentEvent(action="duplicate_decision",
+                                        detail=f"Merged into {original.id} (status {old_status} -> resolved)"))
+        # Never lose an alert by merging: the original takes the higher severity and any rule hits.
+        order = rules.SEVERITY_ORDER
+        if order.index(inc.severity) > order.index(original.severity):
+            original.events.append(IncidentEvent(action="severity",
+                                                 detail=f"Severity {original.severity} -> {inc.severity} "
+                                                        f"(from merged report {inc.id})"))
+            original.severity, original.severity_source = inc.severity, inc.severity_source
+        if inc.escalated and not original.escalated:
+            original.escalated = True
+            original.rule_hits = [*(original.rule_hits or []), *inc.rule_hits]
+        original.events.append(IncidentEvent(action="merged",
+                                             detail=f"Report {inc.id} merged in: \"{inc.transcript}\""))
     db.commit()
     db.refresh(inc)
     return inc

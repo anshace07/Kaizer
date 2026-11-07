@@ -41,6 +41,9 @@ class Incident(Base):
     extractor: Mapped[str | None] = mapped_column(String, nullable=True)  # "llm:<model>" or "keyword fallback"
     extracted: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # full extractor output, as returned
     rule_hits: Mapped[list] = mapped_column(JSON, default=list)  # [{"rule_id", "keyword", "source", ...}]
+    investigation: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # AI investigation result + trace
+    duplicate_status: Mapped[str | None] = mapped_column(String, nullable=True)  # pending / merged / kept_separate
+    merged_into: Mapped[str | None] = mapped_column(String, nullable=True)  # set when merged into an earlier one
     related_incident_id: Mapped[str | None] = mapped_column(ForeignKey("incidents.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now_utc)
 

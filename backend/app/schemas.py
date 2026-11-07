@@ -52,6 +52,9 @@ class IncidentDetailOut(IncidentOut):
     extractor: str | None
     extracted: dict | None
     rule_hits: list[dict]
+    investigation: dict | None
+    duplicate_status: str | None
+    merged_into: str | None
     events: list[EventOut]
 
 
@@ -69,6 +72,10 @@ class IncidentCreate(BaseModel):
 class StatusUpdate(BaseModel):
     status: Status
     note: str = ""
+
+
+class DuplicateDecision(BaseModel):
+    action: Literal["merge", "keep_separate"]
 
 
 class ExtractRequest(BaseModel):

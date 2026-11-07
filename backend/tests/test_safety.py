@@ -5,13 +5,9 @@ Run from backend/:  .venv\\Scripts\\python -m pytest -q
 import json
 
 import pytest
-from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 
 from app import llm
-from app.db import DATA_DIR, Base, get_db
+from app.db import DATA_DIR
 from app.safety import rules
 from app.services import extract
 
@@ -96,25 +92,10 @@ def test_whole_word_matching_avoids_false_alarm():
 
 
 # 12 — the server re-applies the rules: a worker (or bad client) cannot save "low" for a dhuan report
-def test_create_endpoint_cannot_lower_rule_result(monkeypatch):
-    from app.main import app
-    from app.seed import seed
-    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
-    Base.metadata.create_all(engine)
-    TestSession = sessionmaker(bind=engine)
-    with TestSession() as db:
-        seed(db)
-
-    def test_db():
-        with TestSession() as db:
-            yield db
-    app.dependency_overrides[get_db] = test_db
-    try:
-        res = TestClient(app).post("/api/incidents", json={
-            "machine_id": "M-14", "incident_type": "other", "severity": "low",
-            "transcript": "Machine 14 mein dhuan aa raha hai", "symptoms": []})
-    finally:
-        app.dependency_overrides.clear()
+def test_create_endpoint_cannot_lower_rule_result(client):
+    res = client.post("/api/incidents", json={
+        "machine_id": "M-14", "incident_type": "other", "severity": "low",
+        "transcript": "Machine 14 mein dhuan aa raha hai", "symptoms": []})
     body = res.json()
     assert res.status_code == 201
     assert (body["severity"], body["severity_source"], body["escalated"]) == ("critical", "safety_rule", True)

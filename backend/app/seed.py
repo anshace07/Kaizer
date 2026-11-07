@@ -68,7 +68,8 @@ def seed(db):
 OLD_TYPE_NAMES = {"smoke_overheating": "smoke", "vibration_noise": "noise", "fluid_leak": "oil_leak",
                   "high_temperature": "overheating"}
 NEW_COLUMNS = {"escalated": "BOOLEAN DEFAULT 0", "severity_source": "VARCHAR", "llm_severity": "VARCHAR",
-               "extractor": "VARCHAR", "extracted": "JSON", "rule_hits": "JSON"}
+               "extractor": "VARCHAR", "extracted": "JSON", "rule_hits": "JSON",
+               "investigation": "JSON", "duplicate_status": "VARCHAR", "merged_into": "VARCHAR"}
 
 
 def upgrade_schema():

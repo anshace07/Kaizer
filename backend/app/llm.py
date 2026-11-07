@@ -42,6 +42,24 @@ def parse_json(text: str) -> dict:
     return data
 
 
+def chat(messages: list[dict], tools: list[dict] | None = None):
+    """One raw chat call (used for tool calling). Returns (assistant_message, ms). Never retried."""
+    client = _client()
+    extra = {"tools": tools} if tools else {}
+    if effort := os.getenv("LLM_REASONING_EFFORT"):
+        extra["reasoning_effort"] = effort
+    started = time.perf_counter()
+    try:
+        response = client.chat.completions.create(model=os.environ["LLM_MODEL"], messages=messages, **extra)
+    except Exception as e:
+        raise LLMError(f"{type(e).__name__} after {round(time.perf_counter() - started, 1)} s") from e
+    ms = round((time.perf_counter() - started) * 1000)
+    if not response.choices:
+        raise LLMError("LLM returned no choices")
+    log.info("LLM %s chat%s in %s ms", model_name(), " (with tools)" if tools else "", ms)
+    return response.choices[0].message, ms
+
+
 def chat_json(messages: list[dict]) -> dict:
     """Send chat messages and return the reply as a dict. One retry if the reply is not valid JSON.
 

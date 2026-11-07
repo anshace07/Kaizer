@@ -39,7 +39,30 @@ export type IncidentDetail = Incident & {
   extractor: string | null;
   extracted: Analysis | null;
   rule_hits: RuleHit[];
+  investigation: Investigation | null;
+  duplicate_status: "pending" | "merged" | "kept_separate" | null;
+  merged_into: string | null;
   events: IncidentEvent[];
+};
+
+export type SopSection = { id: string; title: string; text: string };
+export type ToolCall = { tool: string; args: Record<string, string>; summary: string; ms: number; ok: boolean };
+
+// incident.investigation — written by the backend agent, step by step
+export type Investigation = {
+  status: "running" | "done" | "failed";
+  path?: "tool_calling" | "fixed_order";
+  fallback_reason?: string;
+  summary_by?: string;
+  findings?: string[];
+  recommended_action?: string;
+  sop_id?: string | null;
+  sop_section?: SopSection | null;
+  evidence_missing?: string[];
+  tool_calls: ToolCall[];
+  evidence: { tool: string; args: Record<string, string>; result: Record<string, unknown> }[];
+  total_ms?: number;
+  error?: string;
 };
 
 export type Stats = {
@@ -140,6 +163,8 @@ export const api = {
     request<Analysis>("/api/incidents/extract", { method: "POST", body: JSON.stringify({ transcript }) }),
   createIncident: (body: NewIncident) =>
     request<IncidentDetail>("/api/incidents", { method: "POST", body: JSON.stringify(body) }),
+  decideDuplicate: (id: string, action: "merge" | "keep_separate") =>
+    request<IncidentDetail>(`/api/incidents/${id}/duplicate`, { method: "POST", body: JSON.stringify({ action }) }),
   setStatus: (id: string, status: Status, note = "") =>
     request<IncidentDetail>(`/api/incidents/${id}/status`, {
       method: "POST",
