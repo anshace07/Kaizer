@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, type Analysis, type Machine, type Transcription } from "@/lib/api";
 import { capitalize } from "@/lib/format";
+import { play } from "@/lib/voice";
 import { ConfirmDetails } from "@/components/confirm-details";
 import { VoiceRecorder } from "@/components/voice-recorder";
 import { Button } from "@/components/ui/button";
@@ -62,7 +63,14 @@ export default function ReportPage() {
         analysis={analysis}
         machines={machines}
         onBack={() => setAnalysis(null)}
-        onCreated={(incident) => router.push(`/incidents/${incident.id}`)}
+        onCreated={(incident) => {
+          // Spoken acknowledgement (fixed template). Not awaited: audio never holds up the flow.
+          api
+            .announce(incident.id)
+            .then(play)
+            .catch(() => {});
+          router.push(`/incidents/${incident.id}`);
+        }}
       />
     );
   }

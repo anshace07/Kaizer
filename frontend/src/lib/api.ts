@@ -76,6 +76,22 @@ export type Stats = {
 
 export type Health = { status: string; data: string; stt_model: string; tts_model: string; llm_model: string };
 
+// Spoken text from the backend. audio_url is null when Timbre failed (tts_error says why) — show the text anyway.
+export type Speech = {
+  text: string;
+  audio_url: string | null;
+  cached: boolean;
+  tts_ms: number | null;
+  tts_error: string | null;
+};
+
+export type HandoverSummary = Speech & {
+  summary_by: string; // "llm:<model>" or "template"
+  word_count: number;
+  incident_ids: string[];
+  fallback_reason: string | null;
+};
+
 export type Extraction = {
   machine_id: string | null;
   machine_candidates: string[];
@@ -163,6 +179,9 @@ export const api = {
     request<Analysis>("/api/incidents/extract", { method: "POST", body: JSON.stringify({ transcript }) }),
   createIncident: (body: NewIncident) =>
     request<IncidentDetail>("/api/incidents", { method: "POST", body: JSON.stringify(body) }),
+  tts: (text: string) => request<Speech>("/api/tts", { method: "POST", body: JSON.stringify({ text }) }),
+  announce: (id: string) => request<Speech>(`/api/incidents/${id}/announce`, { method: "POST" }),
+  handoverSummary: () => request<HandoverSummary>("/api/handover/summary", { method: "POST" }),
   decideDuplicate: (id: string, action: "merge" | "keep_separate") =>
     request<IncidentDetail>(`/api/incidents/${id}/duplicate`, { method: "POST", body: JSON.stringify({ action }) }),
   setStatus: (id: string, status: Status, note = "") =>

@@ -78,5 +78,9 @@ class DuplicateDecision(BaseModel):
     action: Literal["merge", "keep_separate"]
 
 
+class TTSRequest(BaseModel):
+    text: str
+
+
 class ExtractRequest(BaseModel):
     transcript: str

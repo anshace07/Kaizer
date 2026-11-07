@@ -51,6 +51,13 @@ Run the tests (from `backend/`, they never call the real LLM):
 .venv\Scripts\python -m pytest -q
 ```
 
+## Voice (Gnani Timbre text-to-speech)
+
+Spoken acknowledgements, confirmation questions and the shift-handover summary use Timbre `timbre-v2.5`
+(hi-IN) through the `gnani-vachana` SDK. Pick the voice with `TTS_VOICE` in `backend/.env` (default `Urmila`).
+Audio is cached in `backend/cache/tts/` by text, so a sentence is only paid for once. Use the
+"Voice on / off" button in the header to mute.
+
 ## Run the frontend
 
 First time only: `cd frontend` then `npm install`.

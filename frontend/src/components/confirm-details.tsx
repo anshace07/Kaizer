@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertTriangle, Check, HelpCircle, Pencil, ShieldAlert } from "lucide-react";
 import { api, type Analysis, type IncidentDetail, type Machine, type Severity } from "@/lib/api";
 import { capitalize, DECIDED_BY, formatConfidence, INCIDENT_TYPES, SEVERITIES } from "@/lib/format";
+import { say } from "@/lib/voice";
 import { SeverityBadge } from "@/components/badges";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +34,12 @@ export function ConfirmDetails({ analysis, machines, onBack, onCreated }: Props)
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const machineSelect = useRef<HTMLSelectElement>(null);
+
+  // Speak the confirmation question once when this screen opens (text is on screen regardless).
+  const question = ex.confirmation_required ? ex.confirmation_question : null;
+  useEffect(() => {
+    if (question) say(question);
+  }, [question]);
 
   const ruleLocked = analysis.rule_hits.length > 0; // a safety rule fired -> Critical, cannot be lowered
   const location = machines.find((m) => m.id === machineId)?.location ?? ex.location ?? "—";

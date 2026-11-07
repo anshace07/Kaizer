@@ -17,6 +17,20 @@ def no_real_llm(monkeypatch):
     monkeypatch.setattr(llm, "_client", blocked)
 
 
+@pytest.fixture(autouse=True)
+def no_real_tts(monkeypatch, tmp_path):
+    """Timbre is never called for real, and test audio goes to a temp folder, not backend/cache."""
+    from gnani.tts.exceptions import GnaniTTSError
+    from app.services import tts
+
+    class Blocked:
+        def __init__(self, *args, **kwargs):
+            raise GnaniTTSError("real Timbre is blocked in tests")
+    monkeypatch.setattr(tts, "GnaniTTSClient", Blocked)
+    monkeypatch.setattr(tts, "CACHE_DIR", tmp_path / "tts")
+    monkeypatch.setenv("GNANI_API_KEY", "test-key")
+
+
 @pytest.fixture
 def session_factory():
     """A fresh in-memory database with the synthetic seed data."""

@@ -9,6 +9,7 @@ from datetime import timedelta, timezone
 from dotenv import load_dotenv
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from . import llm
@@ -16,15 +17,15 @@ from .agent.investigate import run_investigation
 from .db import BACKEND_DIR, SessionLocal, get_db
 from .models import Incident, IncidentEvent, Machine, now_utc
 from .safety import rules
-from .schemas import (DuplicateDecision, ExtractRequest, IncidentCreate, IncidentDetailOut, IncidentOut, MachineOut, Severity, Status,
+from .schemas import (DuplicateDecision, ExtractRequest, TTSRequest, IncidentCreate, IncidentDetailOut, IncidentOut, MachineOut, Severity, Status,
                       StatusUpdate)
 from .seed import seed_if_empty
-from .services import audio, extract, stt
+from .services import announce, audio, extract, stt, tts
 
 load_dotenv(BACKEND_DIR / ".env")
 
 STT_MODEL = stt.MODEL
-TTS_MODEL = "timbre-v2.5"
+TTS_MODEL = tts.MODEL
 
 
 @asynccontextmanager
@@ -81,6 +82,7 @@ def health():
         "data": "synthetic",
         "stt_model": STT_MODEL,
         "tts_model": TTS_MODEL,
+        "tts_voice": tts.voice(),
         "llm_model": llm.model_name(),
     }
 
@@ -130,6 +132,40 @@ def list_incidents(status: Status | None = None, severity: Severity | None = Non
     if severity:
         q = q.filter(Incident.severity == severity)
     return q.order_by(Incident.created_at.desc()).all()
+
+
+def speech(text: str) -> dict:
+    """Text + (if Timbre worked) a URL to its audio. Never raises: the UI always shows the text."""
+    result = tts.try_speak(text)
+    return {"text": result["text"], "audio_url": f"/api/tts/{result['audio_id']}" if result["audio_id"] else None,
+            "cached": result["cached"], "tts_ms": result["tts_ms"], "tts_error": result["error"]}
+
+
+@app.post("/api/tts")
+def text_to_speech(body: TTSRequest):
+    """Speak a short text (e.g. the confirmation question). Cached by text."""
+    return speech(body.text)
+
+
+@app.get("/api/tts/{audio_id}")
+def tts_audio(audio_id: str):
+    path = tts.audio_path(audio_id)
+    if path is None:
+        raise HTTPException(404, "Audio not found")
+    return FileResponse(path, media_type="audio/wav")
+
+
+@app.post("/api/incidents/{incident_id}/announce")
+def announce_incident(incident_id: str, db: Session = Depends(get_db)):
+    """Spoken acknowledgement from a FIXED template (no LLM): 'Report mil gaya. Machine 14 par dhuan — ...'"""
+    return speech(announce.acknowledgement_text(get_incident_or_404(db, incident_id)))
+
+
+@app.post("/api/handover/summary")
+def handover_summary(db: Session = Depends(get_db)):
+    """LLM writes a <=60-word Hinglish summary of open incidents (template if it fails), then Timbre speaks it."""
+    summary = announce.handover_summary(db)
+    return {**summary, **speech(summary["text"])}
 
 
 def machine_list(db: Session) -> list[dict]:
