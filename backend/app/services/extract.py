@@ -286,10 +286,12 @@ def normalize_transcript(text: str) -> str:
 
 
 # A bare number followed by one of these is a time/count/measurement, not a machine:
-# "5 minute se", "10 baje", "2 baar", "40 degree".
+# "5 minute se", "10 baje", "2 baar", "40 degree", "10 बजे", "5 मिनट".
 NOT_A_MACHINE_AFTER = (
     r"(?!\s*(?:(?:minutes?|mins?|ghanta|ghante|baje|baar|bar|degrees?|din|"
-    r"seconds?|secs?|hours?|log|kg|rpm)(?!\w)|%))"
+    r"seconds?|secs?|hours?|log|kg|rpm|"
+    # the same words in Devanagari (Prisma codemix writes Hindi words this way)
+    r"मिनट|मिनिट|बजे|बार|घंटा|घंटे|डिग्री|दिन|सेकंड|लोग)(?!\w)|%))"
 )
 
 

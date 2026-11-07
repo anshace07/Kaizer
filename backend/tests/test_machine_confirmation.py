@@ -18,6 +18,9 @@ from .test_safety import MACHINES, fake_llm
     ("Machine 7 se 2 baar chingari nikli", ["M-07"]),
     ("Subah 10 baje se machine 3 garam ho rahi hai", ["M-03"]),
     ("Machine 9 ka temperature 40 degree upar chala gaya", ["M-09"]),
+    ("मशीन 3 सुबह 10 बजे से गरम है", ["M-03"]),
+    ("मशीन 14 में 5 मिनट से धुआं आ रहा है", ["M-14"]),
+    ("मशीन 9 बहुत गरम हो रही है", ["M-09"]),
 ])
 def test_detect_machine_candidates_ignores_units(transcript, expected):
     assert extract.detect_machine_candidates(transcript, MACHINES) == expected

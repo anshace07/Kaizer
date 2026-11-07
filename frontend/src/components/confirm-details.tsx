@@ -677,7 +677,7 @@ export function ConfirmDetails({
               {editing ? "Done Editing" : "Edit"}
             </Button>
 
-            {ruleLocked && (
+            {ruleLocked && machineMissing && (
               <Button
                 variant="outline"
                 onClick={() => createIncident(true)}
