@@ -7,7 +7,7 @@ from collections import Counter
 from contextlib import asynccontextmanager
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
@@ -17,10 +17,11 @@ from .models import Incident, IncidentEvent, Machine
 from .schemas import (ExtractOut, ExtractRequest, IncidentCreate, IncidentDetailOut, IncidentOut, MachineOut,
                       Severity, Status, StatusUpdate)
 from .seed import seed_if_empty
+from .services import audio, stt
 
 load_dotenv(BACKEND_DIR / ".env")
 
-STT_MODEL = "prisma-v3.0"
+STT_MODEL = stt.MODEL
 TTS_MODEL = "timbre-v2.5"
 
 
@@ -59,6 +60,32 @@ def health():
         "stt_model": STT_MODEL,
         "tts_model": TTS_MODEL,
         "llm_model": os.getenv("LLM_MODEL") or "not configured",
+    }
+
+
+MAX_UPLOAD_BYTES = 15 * 1024 * 1024  # a 28 s recording is far smaller than this
+
+
+# Plain `def` (not async): FastAPI runs it in a worker thread, so ffmpeg and the Prisma call don't block others.
+@app.post("/api/transcribe")
+def transcribe(file: UploadFile = File(...)):
+    """Any common audio (webm from the browser, wav, mp3, m4a, ogg...) -> 16 kHz mono WAV -> Prisma."""
+    data = file.file.read(MAX_UPLOAD_BYTES + 1)
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(413, "Audio file is too large (max 15 MB).")
+    try:
+        wav, seconds = audio.prepare(data, file.filename or "upload")
+        result = stt.transcribe(wav)
+    except audio.AudioError as e:
+        raise HTTPException(400, str(e))
+    except stt.STTError as e:
+        raise HTTPException(e.status, str(e))
+    return {
+        "transcript": result["transcript"],
+        "detected_language_code": result["detected_language_code"],
+        "stt_ms": result["stt_ms"],  # measured time of the real Prisma call (also for cached results)
+        "cached": result["cached"],
+        "audio_seconds": round(seconds, 1),
     }
 
 

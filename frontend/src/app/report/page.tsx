@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Mic, Pencil } from "lucide-react";
-import { api, type Machine, type NewIncident, type Severity } from "@/lib/api";
+import { Check, Pencil } from "lucide-react";
+import { api, type Machine, type NewIncident, type Severity, type Transcription } from "@/lib/api";
 import { capitalize, formatConfidence, INCIDENT_TYPES, SEVERITIES } from "@/lib/format";
 import { SeverityBadge } from "@/components/badges";
+import { VoiceRecorder } from "@/components/voice-recorder";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,12 +25,29 @@ export default function ReportPage() {
   const [machines, setMachines] = useState<Machine[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [voice, setVoice] = useState<Transcription | null>(null);
+  const [transcribing, setTranscribing] = useState(false);
 
   useEffect(() => {
     api.machines().then(setMachines).catch((e) => setError(String(e)));
   }, []);
 
-  async function understand() {
+  // Recording or uploaded file -> backend (ffmpeg + Prisma) -> transcript shown for the worker to check.
+  async function onAudio(audio: Blob, filename: string) {
+    setTranscribing(true);
+    setError(null);
+    setVoice(null);
+    try {
+      setVoice(await api.transcribe(audio, filename));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setTranscribing(false);
+    }
+  }
+
+  // Transcript (spoken or typed) -> extract -> Confirm Details screen.
+  async function understand(text: string) {
     setBusy(true);
     setError(null);
     try {
@@ -195,16 +213,7 @@ export default function ReportPage() {
       </div>
 
       <div className="flex flex-col items-center gap-3">
-        {/* Placeholder: voice recording is wired up in the next phase. */}
-        <button
-          disabled
-          title="Voice input coming soon"
-          className="flex size-36 cursor-not-allowed items-center justify-center rounded-full bg-[#6d4ae8] text-white opacity-70 shadow-[0_0_0_18px_rgba(109,74,232,0.12)]"
-        >
-          <Mic className="size-14" />
-        </button>
-        <p className="mt-4 font-medium">Tap to Speak</p>
-        <p className="text-xs text-slate-500">Voice input is not connected yet — type your report below.</p>
+        <VoiceRecorder disabled={transcribing || busy} onAudio={onAudio} />
 
         <div className="mt-2 flex gap-2">
           {LANGUAGES.map((l) => (
@@ -221,6 +230,35 @@ export default function ReportPage() {
         </div>
       </div>
 
+      {transcribing && (
+        <p className="text-center text-sm text-slate-500">Transcribing with Prisma v3.0…</p>
+      )}
+
+      {voice && (
+        <Card className="border-violet-200">
+          <CardContent className="space-y-3">
+            <p className="text-sm font-medium">What we heard</p>
+            <p className="rounded-md bg-violet-50 p-3 text-lg">
+              {voice.transcript ? `“${voice.transcript}”` : "No speech detected — please try again."}
+            </p>
+            <p className="text-xs text-slate-500">
+              Prisma v3.0 · language: {voice.detected_language_code ?? "—"} · {voice.audio_seconds} s audio ·
+              transcribed in {voice.stt_ms} ms{voice.cached ? " (cached result, no new call)" : ""}
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setVoice(null)} disabled={busy}>
+                Discard
+              </Button>
+              <Button onClick={() => understand(voice.transcript)} disabled={busy || !voice.transcript}>
+                {busy ? "Understanding…" : "Continue"}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {error && <p className="text-center text-sm text-red-700">{error}</p>}
+
       <Card>
         <CardContent className="space-y-3">
           <p className="text-sm font-medium">Type report instead</p>
@@ -230,9 +268,8 @@ export default function ReportPage() {
             value={text}
             onChange={(e) => setText(e.target.value)}
           />
-          {error && <p className="text-sm text-red-700">{error}</p>}
           <div className="flex justify-end">
-            <Button onClick={understand} disabled={busy || !text.trim()}>
+            <Button onClick={() => understand(text)} disabled={busy || !text.trim()}>
               {busy ? "Understanding…" : "Continue"}
             </Button>
           </div>

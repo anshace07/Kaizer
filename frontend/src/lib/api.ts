@@ -75,7 +75,28 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
+export type Transcription = {
+  transcript: string;
+  detected_language_code: string | null;
+  stt_ms: number; // measured time of the real Prisma call
+  cached: boolean;
+  audio_seconds: number;
+};
+
+// Audio upload is multipart form data, so it can't use the JSON `request` helper.
+async function transcribe(audio: Blob, filename: string): Promise<Transcription> {
+  const form = new FormData();
+  form.append("file", audio, filename);
+  const res = await fetch(`${API_URL}/api/transcribe`, { method: "POST", body: form });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail ?? `${res.status} ${res.statusText}`);
+  }
+  return res.json();
+}
+
 export const api = {
+  transcribe,
   health: () => request<Health>("/api/health"),
   stats: () => request<Stats>("/api/stats"),
   machines: () => request<Machine[]>("/api/machines"),

@@ -28,6 +28,17 @@ Open http://localhost:8000/docs to try every endpoint.
 
 Wipe and re-seed the database: `.venv\Scripts\python -m app.seed`
 
+## Speech-to-text (Gnani Prisma v3.0)
+
+Needs `GNANI_API_KEY` in `backend/.env` and ffmpeg installed (`winget install Gyan.FFmpeg`). Every result is
+cached in `backend/cache/` by the audio's SHA-256, so the same file never costs credits twice.
+
+Try one file from the command line (from `backend/`):
+
+```powershell
+.venvScriptspython -m app.scripts.try_stt path	oudio.wav
+```
+
 ## Run the frontend
 
 First time only: `cd frontend` then `npm install`.
