@@ -42,7 +42,8 @@ Try one file from the command line (from `backend/`):
 ## LLM extraction + safety rules
 
 `backend/.env` needs `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY` (any OpenAI-compatible provider; we use
-Google Gemini `gemini-3.6-flash`). If the LLM fails or times out (20 s), a keyword extractor takes over.
+Google Gemini `gemini-3.1-flash-lite`, with `gemini-3.6-flash` as `LLM_FALLBACK_MODEL` when rate-limited, and
+`LLM_MAX_RPM=12`). If the LLM fails or times out (20 s), a keyword extractor takes over.
 Fixed safety rules live in `backend/app/safety/safety_rules.yaml` and always run, LLM or not.
 
 Run the tests (from `backend/`, they never call the real LLM):

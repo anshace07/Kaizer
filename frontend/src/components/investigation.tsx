@@ -162,7 +162,14 @@ function ToolTrace({ inv }: { inv: Investigation }) {
         {inv.tool_calls.map((c, i) => (
           <tr key={i} className={`border-t ${c.ok ? "" : "text-red-700"}`}>
             <td className="py-1.5">{i + 1}</td>
-            <td className="font-mono">{c.tool}</td>
+            <td className="font-mono">
+              {c.tool}
+              {c.auto && (
+                <span title="The model skipped this tool, so it was run automatically" className="ml-1.5 rounded bg-slate-100 px-1.5 py-0.5 font-sans text-[10px] text-slate-600">
+                  auto
+                </span>
+              )}
+            </td>
             <td className="font-mono">{JSON.stringify(c.args)}</td>
             <td>{c.summary}</td>
             <td className="text-right tabular-nums">{c.ms}</td>

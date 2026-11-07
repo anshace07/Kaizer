@@ -143,9 +143,29 @@ def test_at_most_two_llm_calls_and_five_tool_calls(monkeypatch, session_factory)
     investigate.run_investigation(session_factory, iid)
 
     _, inv, _ = load(session_factory, iid)
-    assert len(inv["tool_calls"]) == 5  # 7 requested, only 5 run
+    model_calls = [c for c in inv["tool_calls"] if not c["auto"]]
+    assert len(model_calls) == 5  # the model asked for 7, only 5 run
+    assert {c["tool"] for c in inv["tool_calls"] if c["auto"]} == {  # the 3 it skipped run automatically
+        "get_machine_history", "check_open_tickets", "get_maintenance_schedule"}
     assert len(chat.sent) == 2 and inv["llm_calls"] == 2
     assert chat.sent[1]["tools"] is None  # call 2 offers no tools: the model must summarise
+
+
+def test_tools_the_model_skipped_are_run_automatically(monkeypatch, session_factory):
+    only_sop = FakeMessage(tool_calls=[FakeToolCall(0, "search_sop", {"query": "smoke"})])
+    chat = fake_chat([only_sop, FakeMessage(content=json.dumps(SUMMARY))])
+    monkeypatch.setattr(llm, "chat", chat)
+    iid = make_incident(session_factory)
+
+    investigate.run_investigation(session_factory, iid)
+
+    _, inv, events = load(session_factory, iid)
+    assert [(c["tool"], c["auto"]) for c in inv["tool_calls"]] == [
+        ("search_sop", False), ("get_machine_history", True), ("check_open_tickets", True),
+        ("get_maintenance_schedule", True)]
+    assert len(chat.sent) == 2 and inv["llm_calls"] == 2  # still only 2 LLM calls
+    assert "More evidence, gathered automatically" in chat.sent[1]["messages"][-1]["content"]
+    assert sum(d.startswith("(auto) ") for a, d in events if a == "tool_call") == 3
 
 
 def test_second_call_failure_uses_template_without_third_call(monkeypatch, session_factory):

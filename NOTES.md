@@ -143,3 +143,8 @@
 **Likely interview question**
 - *Q: Why not just retry until Gemini answers?*
   A: In a safety app, waiting is worse than a slightly dumber answer. We wait once (max 8 s), try a lighter model once, then fall back to keywords, and the fixed safety rules fire either way. Unlimited retries would also make the rate limiting worse, which is why we cap our own request rate.
+
+## Phase 6.3b — Free-tier friendly model setup + complete evidence
+
+- **Models swapped to fit the AI Studio free tier** (Nov 2026 console: `gemini-3.6-flash` 5 RPM / 20 RPD and already used up today; `gemini-3.1-flash-lite` 15 RPM / 500 RPD). Now `LLM_MODEL=gemini-3.1-flash-lite`, `LLM_FALLBACK_MODEL=gemini-3.6-flash`, `LLM_MAX_RPM=12` (under flash-lite's 15). One real test call through the app's extraction path, with a guard allowing only one HTTP request: 1 request, 1.9 s, correct JSON (M-14 / smoke / hinglish, Critical by rule S1). Tool calling on flash-lite was **not** tested live (one-call budget). If it fails, the fixed-order fallback runs all 4 tools anyway.
+- **Skipped tools are filled in:** after the model's tool calls, any of the 4 tools it did not run is run automatically (plain Python, no extra LLM call). It is marked "auto" in the trace and "(auto)" in the timeline, and its results go to the model for the summary call. So every investigation has history, tickets, maintenance and SOP evidence, still in at most 2 LLM calls. 164 tests pass.

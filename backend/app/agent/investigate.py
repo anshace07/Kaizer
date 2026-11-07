@@ -79,7 +79,8 @@ class Investigation:
             self.data.setdefault("llm_notes", []).append(reply.note)
             self.save("llm_model", f"LLM: {reply.note}")
 
-    def call_tool(self, name: str, args: dict) -> dict:
+    def call_tool(self, name: str, args: dict, auto: bool = False) -> dict:
+        """Run one tool and log it. auto=True means WE ran it (the model skipped it), not the model."""
         started = time.perf_counter()
         try:
             result, ok = tools.run_tool(self.db, name, args, incident_id=self.inc.id), True
@@ -87,12 +88,15 @@ class Investigation:
         except tools.ToolError as e:
             result, ok, summary = {"error": str(e)}, False, f"error: {e}"
         ms = round((time.perf_counter() - started) * 1000, 1)
-        self.calls.append({"tool": name, "args": args, "summary": summary, "ms": ms, "ok": ok})
+        self.calls.append({"tool": name, "args": args, "summary": summary, "ms": ms, "ok": ok, "auto": auto})
         if ok:
             self.results.append({"tool": name, "args": args, "result": result})
         arg_text = ", ".join(f"{k}={v}" for k, v in args.items())
-        self.save("tool_call", f"{name}({arg_text}) → {summary} · {ms} ms")
+        self.save("tool_call", f"{'(auto) ' if auto else ''}{name}({arg_text}) → {summary} · {ms} ms")
         return result
+
+    def ran_ok(self, name: str) -> bool:
+        return any(c["tool"] == name and c["ok"] for c in self.calls)
 
 
 MAX_LLM_CALLS = 2  # per investigation: (1) choose tools, (2) write the summary
@@ -121,6 +125,13 @@ def gather_with_tool_calling(inv: Investigation) -> tuple[str | None, str | None
             result = inv.call_tool(tc.function.name, args)
         messages.append({"role": "tool", "tool_call_id": tc.id, "content": json.dumps(result, ensure_ascii=False)})
 
+    # Any of the 4 tools the model skipped: we run it ourselves (no extra LLM call) and hand over the result.
+    before = len(inv.results)
+    run_missing_tools(inv, auto=True)
+    if extra := inv.results[before:]:
+        messages.append({"role": "user", "content": "More evidence, gathered automatically (tool results):\n"
+                                                    + json.dumps(extra, ensure_ascii=False)})
+
     inv.data["llm_calls"] += 1  # call 2 of 2: tools are no longer offered, so the model must summarise
     try:
         second = llm.chat(messages, tools=None)
@@ -131,15 +142,21 @@ def gather_with_tool_calling(inv: Investigation) -> tuple[str | None, str | None
     return second.message.content, second.model
 
 
-def gather_fixed_order(inv: Investigation):
-    """Fallback: call all 4 tools ourselves, always in the same order."""
+def run_missing_tools(inv: Investigation, auto: bool = False):
+    """Run, in a fixed order, each of the 4 tools that has not run successfully yet. Plain Python, no LLM.
+    Machine tools need a machine id; without one they are skipped (reported as missing evidence)."""
     mid = inv.inc.machine_id
-    if mid:
-        inv.call_tool("get_machine_history", {"machine_id": mid})
-        inv.call_tool("check_open_tickets", {"machine_id": mid})
-        inv.call_tool("get_maintenance_schedule", {"machine_id": mid})
-    query = " ".join([SOP_QUERY.get(inv.inc.incident_type, ""), *inv.inc.symptoms]).strip() or "warning signs"
-    inv.call_tool("search_sop", {"query": query})
+    for name in ("get_machine_history", "check_open_tickets", "get_maintenance_schedule"):
+        if mid and not inv.ran_ok(name):
+            inv.call_tool(name, {"machine_id": mid}, auto=auto)
+    if not inv.ran_ok("search_sop"):
+        query = " ".join([SOP_QUERY.get(inv.inc.incident_type, ""), *inv.inc.symptoms]).strip() or "warning signs"
+        inv.call_tool("search_sop", {"query": query}, auto=auto)
+
+
+def gather_fixed_order(inv: Investigation):
+    """Fallback when tool calling fails: call all 4 tools ourselves, always in the same order."""
+    run_missing_tools(inv)
 
 
 def sop_ids_found(inv: Investigation) -> list[str]:

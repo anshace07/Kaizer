@@ -46,7 +46,8 @@ export type IncidentDetail = Incident & {
 };
 
 export type SopSection = { id: string; title: string; text: string };
-export type ToolCall = { tool: string; args: Record<string, string>; summary: string; ms: number; ok: boolean };
+// auto = the model skipped this tool, so the backend ran it itself (no extra LLM call)
+export type ToolCall = { tool: string; args: Record<string, string>; summary: string; ms: number; ok: boolean; auto?: boolean };
 
 // incident.investigation — written by the backend agent, step by step
 export type Investigation = {
