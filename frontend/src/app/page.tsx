@@ -156,7 +156,7 @@ export default function DashboardPage() {
           <div className="mb-2 flex items-center gap-2">
 
             <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-bold text-violet-700">
-              PLANTPULSE AI
+              KAIZER
             </span>
 
             <span className="flex items-center gap-1.5 text-sm font-semibold text-emerald-600">

@@ -9,7 +9,7 @@ import { Sidebar } from "@/components/sidebar";
 const inter = Inter({ variable: "--font-sans", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "PlantPulse AI",
+  title: "KAIZER",
  description: "Voice-first industrial incident reporting and management.",
 };
 

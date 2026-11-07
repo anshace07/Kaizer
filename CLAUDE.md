@@ -1,4 +1,4 @@
-# PlantPulse AI — project brief
+# DECOY — project brief
 
 ## What we're building
 A factory worker reports a problem by voice in Hindi, English or Hinglish. PlantPulse turns it into a structured incident, checks that machine's records and the safety manual, raises an alarm using fixed safety rules, and shows everything on a supervisor dashboard. Built for Gnani AI's Great Indian AI Internship Challenge. Deadline: Tue 10 Nov 2026, 11:59 PM IST.

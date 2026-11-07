@@ -850,3 +850,74 @@ def stats(db: Session = Depends(get_db)):
             incident.incident_type for incident in incidents
         ),
     }
+
+
+# --------------------------------------------------
+# AI PERFORMANCE METRICS
+# --------------------------------------------------
+
+@app.get("/api/performance")
+def performance(db: Session = Depends(get_db)):
+    """Calculate operational AI metrics from saved incidents only."""
+
+    incidents = db.query(Incident).all()
+
+    llm_incidents = [
+        i for i in incidents
+        if (i.extractor or "").startswith("llm:")
+    ]
+
+    fallback_incidents = [
+        i for i in incidents
+        if i.extractor == "keyword fallback"
+    ]
+
+    def average(values):
+        return round(sum(values) / len(values), 2) if values else None
+
+    analysis_times = []
+    llm_times = []
+
+    for incident in incidents:
+        extracted = incident.extracted or {}
+
+        if isinstance(extracted, dict):
+            analyse_ms = extracted.get("analyse_ms")
+            llm_ms = extracted.get("llm_ms")
+
+            if isinstance(analyse_ms, (int, float)):
+                analysis_times.append(analyse_ms)
+
+            if isinstance(llm_ms, (int, float)):
+                llm_times.append(llm_ms)
+
+    confidences = [
+        i.confidence for i in incidents
+        if i.confidence is not None
+        and (i.extractor or "").startswith("llm:")
+    ]
+
+    rule_triggered = sum(
+        1 for i in incidents if i.rule_hits
+    )
+
+    return {
+        "source": "saved_incidents_database",
+        "total_incidents": len(incidents),
+        "llm_incidents": len(llm_incidents),
+        "fallback_incidents": len(fallback_incidents),
+        "fallback_rate_percent": round(
+            len(fallback_incidents) / len(incidents) * 100, 2
+        ) if incidents else None,
+        "average_analysis_time_ms": average(analysis_times),
+        "average_llm_response_time_ms": average(llm_times),
+        "average_llm_self_reported_confidence": average(confidences),
+        "critical_incidents": sum(
+            1 for i in incidents if i.severity == "critical"
+        ),
+        "safety_escalations": sum(
+            1 for i in incidents if i.escalated
+        ),
+        "incidents_with_safety_rule_hits": rule_triggered,
+        "note": "Operational metrics from saved incidents; confidence is self-reported, not measured accuracy."
+    }

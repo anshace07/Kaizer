@@ -66,6 +66,21 @@ export type Investigation = {
   error?: string;
 };
 
+export type PerformanceMetrics = {
+  source: string;
+  total_incidents: number;
+  llm_incidents: number;
+  fallback_incidents: number;
+  fallback_rate_percent: number | null;
+  average_analysis_time_ms: number | null;
+  average_llm_response_time_ms: number | null;
+  average_llm_self_reported_confidence: number | null;
+  critical_incidents: number;
+  safety_escalations: number;
+  incidents_with_safety_rule_hits: number;
+  note: string;
+};
+
 export type Stats = {
   total: number;
   unresolved: number;
@@ -191,6 +206,7 @@ export const api = {
   transcribe,
   health: () => request<Health>("/api/health"),
   stats: () => request<Stats>("/api/stats"),
+  performance: () => request<PerformanceMetrics>("/api/performance"),
   machines: () => request<Machine[]>("/api/machines"),
   incidents: (filters: { status?: string; severity?: string } = {}) => {
     const params = new URLSearchParams();

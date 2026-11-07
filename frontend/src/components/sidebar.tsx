@@ -2,7 +2,22 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, ChartLine, ClipboardList, Gauge, LayoutDashboard, Mic, Settings, Users } from "lucide-react";
+import { Orbitron } from "next/font/google";
+import {
+  Activity,
+  ChartLine,
+  ClipboardList,
+  Gauge,
+  LayoutDashboard,
+  Mic,
+  Settings,
+  Users,
+} from "lucide-react";
+
+const orbitron = Orbitron({
+  subsets: ["latin"],
+  weight: ["700"],
+});
 
 const LINKS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -13,7 +28,17 @@ const LINKS = [
   { href: "/performance", label: "AI Performance", icon: ChartLine },
 ];
 
-function NavLink({ href, label, icon: Icon, active }: { href: string; label: string; icon: typeof Mic; active: boolean }) {
+function NavLink({
+  href,
+  label,
+  icon: Icon,
+  active,
+}: {
+  href: string;
+  label: string;
+  icon: typeof Mic;
+  active: boolean;
+}) {
   return (
     <Link
       href={href}
@@ -32,8 +57,9 @@ function NavLink({ href, label, icon: Icon, active }: { href: string; label: str
 
 export function Sidebar() {
   const pathname = usePathname();
-  // "/" must match exactly; other links also match their sub-pages (e.g. /incidents/INC-1001).
-  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
     <aside className="flex w-64 shrink-0 flex-col bg-[#1c1a2e] px-4 py-6">
@@ -41,7 +67,10 @@ export function Sidebar() {
         <span className="flex size-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#8b6cf6] to-[#5b3bd4] shadow-lg shadow-violet-900/40">
           <Activity className="size-5 text-white" strokeWidth={2.5} />
         </span>
-        <span className="text-lg font-semibold tracking-tight text-white">PlantPulse AI</span>
+
+        <span className={`${orbitron.className} text-lg font-bold tracking-[3px] text-white`}>
+          KAIZER
+        </span>
       </Link>
 
       <nav className="flex flex-col gap-1">
@@ -51,8 +80,12 @@ export function Sidebar() {
       </nav>
 
       <div className="mt-auto space-y-3">
-        <NavLink href="/settings" label="Settings" icon={Settings} active={isActive("/settings")} />
-        <p className="px-3.5 text-xs text-slate-500"></p>
+        <NavLink
+          href="/settings"
+          label="Settings"
+          icon={Settings}
+          active={isActive("/settings")}
+        />
       </div>
     </aside>
   );

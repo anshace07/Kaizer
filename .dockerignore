@@ -1,12 +1,11 @@
-# Build context for the BACKEND image is the repo root (it needs backend/ and data/).
-# Allow-list: send only what the Dockerfile copies, never secrets or local state.
-*
-!backend/app
+# Backend build allow-list
+!backend/
+!backend/app/
+!backend/app/**
 !backend/requirements.txt
 !backend/requirements-lock.txt
-!data
-
-# Never, even inside allowed folders:
+!data/
+!data/**
 **/.env
 **/.env.*
 **/*.db

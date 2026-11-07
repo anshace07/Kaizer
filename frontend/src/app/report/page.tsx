@@ -460,7 +460,7 @@ export default function ReportPage() {
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-blue-600" />
 
         <p className="text-xs leading-6 text-blue-800">
-          PlantPulse AI uses safety rules to identify critical incidents.
+          KAIZER uses safety rules to identify critical incidents.
           Always follow your factory&apos;s official emergency procedures.
           Review AI-generated incident details before submission.
         </p>

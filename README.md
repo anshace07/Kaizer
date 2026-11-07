@@ -1,4 +1,4 @@
-# PlantPulse AI
+
 
 A factory worker reports a problem by voice (Hindi, English or Hinglish). PlantPulse turns it into a structured incident, checks the machine's records and the safety manual, raises a simulated alert using fixed safety rules, and shows it on a supervisor dashboard.
 
