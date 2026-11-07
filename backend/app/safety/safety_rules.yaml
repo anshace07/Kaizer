@@ -82,6 +82,7 @@ rules:
 
   - id: S3
     name: Sparks / electric
+    incident_types: [sparks_fire]
     keywords:
       - spark
       - sparks
@@ -109,6 +110,7 @@ rules:
 
   - id: S4
     name: Fire
+    incident_types: [sparks_fire]
     keywords:
       - fire
       - flame
@@ -143,6 +145,7 @@ rules:
 
   - id: S5
     name: Burning smell
+    incident_types: []
     keywords:
       - burning smell
       - burning

@@ -412,9 +412,8 @@ def create_incident(
     Save the worker-confirmed incident.
 
     The backend independently:
-    - Validates machine selection.
-    - Checks that the machine exists.
-    - Reapplies deterministic safety rules.
+    - Runs deterministic safety rules first (a danger report is never blocked).
+    - Checks that the chosen machine exists (any machine; overrides are logged).
     - Checks for duplicate reports.
     """
 
@@ -465,8 +464,17 @@ def create_incident(
         or len(candidates) > 1
     )
 
-    # Require a machine selection whenever confirmation is needed.
-    if confirmation_required and not body.machine_id:
+    # Run the deterministic safety rules FIRST, so a danger report is never
+    # blocked just because the machine is unknown.
+    hits = rules.check(
+        transcript,
+        body.incident_type,
+        body.symptoms,
+    )
+
+    # Require a machine selection whenever confirmation is needed —
+    # unless a safety rule fired: then the report is saved without a machine.
+    if confirmation_required and not body.machine_id and not hits:
         raise HTTPException(
             status_code=422,
             detail=(
@@ -476,23 +484,10 @@ def create_incident(
             ),
         )
 
-    # Do not allow selection outside the detected candidate list.
-    if (
-        candidates
-        and body.machine_id
-        and body.machine_id not in candidates
-    ):
-        raise HTTPException(
-            status_code=422,
-            detail=(
-                "Invalid machine selection. Please select one "
-                "of the suggested machines: "
-                + ", ".join(candidates)
-            ),
-        )
-
-    # 3. Verify that the selected machine exists.
+    # 3. Verify that the selected machine exists. The worker may pick any
+    # existing machine, even one we did not suggest (logged as an override).
     location = None
+    worker_override = None
 
     if body.machine_id:
         machine = db.get(Machine, body.machine_id)
@@ -505,6 +500,12 @@ def create_incident(
 
         location = machine.location
 
+        if candidates and body.machine_id not in candidates:
+            worker_override = (
+                f"Worker chose {body.machine_id} "
+                f"(suggested: {', '.join(candidates)})"
+            )
+
     # 4. Verify the related incident, if supplied.
     if body.related_incident_id:
         get_incident_or_404(
@@ -512,13 +513,7 @@ def create_incident(
             body.related_incident_id,
         )
 
-    # 5. Reapply deterministic safety rules.
-    hits = rules.check(
-        transcript,
-        body.incident_type,
-        body.symptoms,
-    )
-
+    # 5. Safety rules were already applied above (hits).
     # Determine whether the severity being submitted is the
     # severity produced by the earlier extraction analysis.
     if body.severity == analysis.get("severity"):
@@ -588,7 +583,18 @@ def create_incident(
             ("llm_fallback", analysis["fallback_reason"])
         )
 
-    if confirmation_required:
+    if worker_override:
+        log.append(("worker_override", worker_override))
+
+    if not body.machine_id and hits:
+        log.append(
+            (
+                "machine_unknown",
+                "Machine not identified — safety alert raised anyway",
+            )
+        )
+
+    if confirmation_required and body.machine_id:
         log.append(
             (
                 "worker_confirmed",

@@ -285,8 +285,20 @@ def normalize_transcript(text: str) -> str:
     return text.strip()
 
 
-def contains_alias(transcript: str, alias: str) -> bool:
-    """Match a complete alias instead of an accidental substring."""
+# A bare number followed by one of these is a time/count/measurement, not a machine:
+# "5 minute se", "10 baje", "2 baar", "40 degree".
+NOT_A_MACHINE_AFTER = (
+    r"(?!\s*(?:(?:minutes?|mins?|ghanta|ghante|baje|baar|bar|degrees?|din|"
+    r"seconds?|secs?|hours?|log|kg|rpm)(?!\w)|%))"
+)
+
+
+def contains_alias(transcript: str, alias: str, bare_number: bool = False) -> bool:
+    """Match a complete alias instead of an accidental substring.
+
+    bare_number=True: the alias is just a number ("14", "chalis"), so it only
+    counts when it is NOT followed by a unit/time word.
+    """
 
     alias = normalize_transcript(alias)
 
@@ -294,6 +306,8 @@ def contains_alias(transcript: str, alias: str) -> bool:
         return False
 
     pattern = r"(?<!\w)" + re.escape(alias) + r"(?!\w)"
+    if bare_number:
+        pattern += NOT_A_MACHINE_AFTER
 
     return re.search(pattern, transcript, flags=re.IGNORECASE) is not None
 
@@ -323,21 +337,28 @@ def detect_machine_candidates(
         )
 
         aliases = set()
+        number_words = set()
 
         aliases.add(machine_id)
         aliases.add(machine_id.replace("-", " "))
 
         if machine_number is not None:
-            aliases.add(str(machine_number))
-            aliases.update(NUMBER_ALIASES.get(machine_number, []))
+            number_words.add(str(machine_number))
+            number_words.update(NUMBER_ALIASES.get(machine_number, []))
 
         aliases.add(machine.get("name", ""))
         aliases.update(machine.get("aliases", []))
 
-        for alias in aliases:
-            if contains_alias(normalized, str(alias)):
-                matched.append(machine_id)
-                break
+        aliases -= number_words  # e.g. M-40 also lists bare "chalis"
+
+        found = any(
+            contains_alias(normalized, str(alias)) for alias in aliases
+        ) or any(
+            contains_alias(normalized, word, bare_number=True)
+            for word in number_words
+        )
+        if found:
+            matched.append(machine_id)
 
     return list(dict.fromkeys(matched))
 
