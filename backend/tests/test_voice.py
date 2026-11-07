@@ -119,7 +119,7 @@ def test_handover_uses_llm_summary_when_valid(monkeypatch, session_factory):
         result = announce.handover_summary(db)
     assert (result["text"], result["spoken"]) == (text, spoken) and result["summary_by"].startswith("llm:")
     assert result["incident_ids"] == ["INC-3001", "INC-3002"]  # critical first
-    assert calls[0] == {"timeout": 35, "retry_on_timeout": True}
+    assert calls[0] == {"timeout": 35, "retry_on_timeout": True, "json_retry": True}
 
 
 def test_handover_rejects_bad_llm_output(monkeypatch, session_factory):

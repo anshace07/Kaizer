@@ -172,12 +172,13 @@ def keyword_fallback(transcript: str, machines: list[dict]) -> Extraction:
 def analyse(transcript: str, machines: list[dict]) -> dict:
     """LLM extraction (or keyword fallback) + safety rules. Safe to call even if the LLM is down."""
     started = time.perf_counter()
-    fallback_reason, llm_ms = None, None
+    fallback_reason, llm_ms, llm_note = None, None, None
     try:
-        raw = llm.chat_json(build_messages(transcript, machines))
-        llm_ms = raw.pop("_llm_ms", None)
+        raw = llm.chat_json(build_messages(transcript, machines))  # exactly ONE logical LLM call per report
+        llm_ms, llm_note = raw.pop("_llm_ms", None), raw.pop("_llm_note", None)
+        answered_by = raw.pop("_llm_model", None) or llm.model_name()
         extraction = Extraction.model_validate(raw)
-        extractor = f"llm:{llm.model_name()}"
+        extractor = f"llm:{answered_by}"  # the model that actually answered (may be LLM_FALLBACK_MODEL)
     except (llm.LLMError, ValidationError) as e:
         fallback_reason = f"LLM unavailable ({str(e).splitlines()[0][:160]}) — used keyword extractor"
         extraction = keyword_fallback(transcript, machines)
@@ -200,5 +201,6 @@ def analyse(transcript: str, machines: list[dict]) -> dict:
         "severity": severity,
         "severity_decided_by": decided_by,
         "llm_ms": llm_ms,
+        "llm_note": llm_note,  # e.g. primary model rate-limited -> fallback model answered
         "analyse_ms": round((time.perf_counter() - started) * 1000),
     }

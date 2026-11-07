@@ -44,7 +44,7 @@ def fake_chat(replies):
 
     def chat(messages, tools=None):
         sent.append({"messages": list(messages), "tools": tools})
-        return next(replies), 5
+        return llm.Reply(next(replies), 5, "fake-model", None)
     chat.sent = sent
     return chat
 
@@ -134,17 +134,59 @@ def test_no_llm_at_all_uses_template_from_tool_results(session_factory):
     assert severity == "low"  # the investigation never raises or lowers severity
 
 
-def test_max_five_tool_calls(monkeypatch, session_factory):
-    greedy = [FakeMessage(tool_calls=[FakeToolCall(i, "search_sop", {"query": "smoke"})]) for i in range(5)]
-    chat = fake_chat(greedy + [FakeMessage(content=json.dumps(SUMMARY))])
+def test_at_most_two_llm_calls_and_five_tool_calls(monkeypatch, session_factory):
+    greedy = FakeMessage(tool_calls=[FakeToolCall(i, "search_sop", {"query": "smoke"}) for i in range(7)])
+    chat = fake_chat([greedy, FakeMessage(content=json.dumps(SUMMARY))])
     monkeypatch.setattr(llm, "chat", chat)
     iid = make_incident(session_factory)
 
     investigate.run_investigation(session_factory, iid)
 
     _, inv, _ = load(session_factory, iid)
-    assert len(inv["tool_calls"]) == 5
-    assert chat.sent[-1]["tools"] is None  # after 5 calls the model is no longer offered tools
+    assert len(inv["tool_calls"]) == 5  # 7 requested, only 5 run
+    assert len(chat.sent) == 2 and inv["llm_calls"] == 2
+    assert chat.sent[1]["tools"] is None  # call 2 offers no tools: the model must summarise
+
+
+def test_second_call_failure_uses_template_without_third_call(monkeypatch, session_factory):
+    calls = [FakeToolCall(i, n, a) for i, (n, a) in enumerate(ALL_FOUR)]
+    sent = []
+
+    def chat(messages, tools=None):
+        sent.append(tools)
+        if len(sent) == 1:
+            return llm.Reply(FakeMessage(tool_calls=calls), 5, "fake-model", None)
+        raise llm.LLMError("RateLimitError")
+    monkeypatch.setattr(llm, "chat", chat)
+    monkeypatch.setattr(llm, "chat_json", lambda *a, **k: pytest.fail("no third LLM call allowed"))
+    iid = make_incident(session_factory)
+
+    investigate.run_investigation(session_factory, iid)
+
+    _, inv, _ = load(session_factory, iid)
+    assert inv["path"] == "tool_calling" and inv["summary_by"] == "template (LLM unavailable)"
+    assert len(sent) == 2 and inv["llm_calls"] == 2
+
+
+def test_fixed_order_path_uses_at_most_two_calls(monkeypatch, session_factory):
+    used = []
+
+    def broken(messages, tools=None):
+        used.append("chat")
+        raise llm.LLMError("RateLimitError")
+
+    def chat_json(messages, **kwargs):
+        used.append("chat_json")
+        return {**SUMMARY, "_llm_ms": 5, "_llm_model": "gemini-3.1-flash-lite", "_llm_note": "429 -> fallback"}
+    monkeypatch.setattr(llm, "chat", broken)
+    monkeypatch.setattr(llm, "chat_json", chat_json)
+    iid = make_incident(session_factory)
+
+    investigate.run_investigation(session_factory, iid)
+
+    _, inv, _ = load(session_factory, iid)
+    assert used == ["chat", "chat_json"] and inv["llm_calls"] == 2
+    assert inv["summary_by"] == "llm:gemini-3.1-flash-lite"  # shows the model that actually answered
 
 
 def test_sop_id_must_come_from_search_results(monkeypatch, session_factory):

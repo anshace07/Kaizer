@@ -128,3 +128,18 @@
   A: Spellings explode: "dhuaan", "dhuaaan" and "dhuwan" differ by STT noise, and Devanagari has several valid ways to write the same nasal sound. One small, tested normaliser applied to both the text and the keywords handles whole families at once, and the explicit keyword lists stay short enough for a reviewer to check.
 - *Q: 100% recall — so the rules never miss?*
   A: 100% on our own 85-sentence test set, which I wrote while tuning the rules, so it is a regression test, not a guarantee. Real speech will produce spellings we haven't seen. That's why there are three layers: the rules on the raw transcript, the rules on the LLM's extracted fields, and the LLM's `incident_type` mapped to a rule.
+
+## Phase 6.3 — Surviving Gemini rate limits (HTTP 429)
+
+**What was built and why**
+- Every LLM request now goes through one function in `app/llm.py`. On HTTP 429 it waits for the provider's Retry-After (header, or Gemini's `retryDelay` in the body), capped at 8 s, and retries once. If that fails, it tries `LLM_FALLBACK_MODEL` (`gemini-3.1-flash-lite`) once, and only then raises, so callers use their own fallback (keyword extractor, fixed-order tools, template summary). The model that actually answered is recorded: "Extracted by: llm:gemini-3.1-flash-lite", a timeline event "LLM: … rate-limited … answered by …", and the investigation's "summary by".
+- An in-process sliding-window limiter means the app never sends more than `LLM_MAX_RPM` (default 8) requests per minute. Extra requests queue for up to 20 s, then give up and use the fallback. Retries and the fallback model also go through the limiter.
+- Fewer calls per report: extraction is exactly 1 call (the invalid-JSON retry is now opt-in and used only by the click-triggered handover summary; a bad reply goes straight to the keyword extractor). The investigation is at most 2 calls: (1) the model picks tools, we run up to 5; (2) with tools no longer offered, it must write the summary. If (1) fails: all 4 tools run in fixed order plus one summary call. If (2) fails: the template summary is used, never a third call. The handover summary runs only when the button is clicked. Nothing else calls the LLM. 163 tests pass, with everything mocked.
+
+**LLM calls per report (logical calls; one HTTP request each unless rate-limited)**
+- Before: typically 3 (1 extraction + 2 investigation), worst case about 10 (JSON retry, up to 6 tool rounds, summary retry).
+- After: **at most 3** (1 extraction + at most 2 investigation). Under 429, each logical call can become up to 3 HTTP requests (primary, primary retry, fallback model), all inside the per-minute limit.
+
+**Likely interview question**
+- *Q: Why not just retry until Gemini answers?*
+  A: In a safety app, waiting is worse than a slightly dumber answer. We wait once (max 8 s), try a lighter model once, then fall back to keywords, and the fixed safety rules fire either way. Unlimited retries would also make the rate limiting worse, which is why we cap our own request rate.

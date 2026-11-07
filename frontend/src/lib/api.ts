@@ -81,6 +81,8 @@ export type Health = {
   tts_model: string;
   tts_voice: string;
   llm_model: string;
+  llm_fallback_model: string | null; // tried once if llm_model stays rate-limited
+  llm_max_rpm: number;
   demo_reset_enabled: boolean;
 };
 

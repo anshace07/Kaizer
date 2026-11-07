@@ -73,6 +73,12 @@ class Investigation:
         self.inc.investigation = {**self.data, "evidence": self.results}  # new dict so SQLAlchemy saves it
         self.db.commit()
 
+    def note_model(self, reply):
+        """Record a 429 / fallback-model note on the timeline, so the UI shows which model answered."""
+        if reply.note:
+            self.data.setdefault("llm_notes", []).append(reply.note)
+            self.save("llm_model", f"LLM: {reply.note}")
+
     def call_tool(self, name: str, args: dict) -> dict:
         started = time.perf_counter()
         try:
@@ -89,30 +95,40 @@ class Investigation:
         return result
 
 
-def gather_with_tool_calling(inv: Investigation) -> str | None:
-    """Let the LLM choose tools. Returns the LLM's final text (hopefully the summary JSON)."""
+MAX_LLM_CALLS = 2  # per investigation: (1) choose tools, (2) write the summary
+
+
+def gather_with_tool_calling(inv: Investigation) -> tuple[str | None, str | None]:
+    """LLM call 1 picks tools (we run up to 5 of them); LLM call 2 (no tools offered) writes the summary.
+    Returns (summary text or None if call 2 failed, model that answered). Raises LLMError if call 1 fails."""
     messages = [{"role": "system", "content": SYSTEM_PROMPT},
                 {"role": "user", "content": json.dumps(brief(inv.inc), ensure_ascii=False)}]
-    while True:
-        allow_tools = len(inv.calls) < MAX_TOOL_CALLS
-        inv.data["llm_calls"] += 1
-        message, _ = llm.chat(messages, tools=tools.TOOL_SPECS if allow_tools else None)
-        if not message.tool_calls:
-            if not inv.calls:
-                raise llm.LLMError("the model answered without calling any tool")
-            return message.content
-        # Send the assistant turn back exactly as received (Gemini needs its hidden "thought" fields).
-        messages.append(message.model_dump(exclude_none=True))
-        for tc in message.tool_calls:
-            if len(inv.calls) >= MAX_TOOL_CALLS:
-                result = {"error": f"limit of {MAX_TOOL_CALLS} tool calls reached"}
-            else:
-                try:
-                    args = json.loads(tc.function.arguments or "{}")
-                except ValueError:
-                    args = {}
-                result = inv.call_tool(tc.function.name, args)
-            messages.append({"role": "tool", "tool_call_id": tc.id, "content": json.dumps(result, ensure_ascii=False)})
+    inv.data["llm_calls"] += 1
+    first = llm.chat(messages, tools=tools.TOOL_SPECS)
+    inv.note_model(first)
+    if not first.message.tool_calls:
+        raise llm.LLMError("the model answered without calling any tool")
+    # Send the assistant turn back exactly as received (Gemini needs its hidden "thought" fields).
+    messages.append(first.message.model_dump(exclude_none=True))
+    for tc in first.message.tool_calls:
+        if len(inv.calls) >= MAX_TOOL_CALLS:
+            result = {"error": f"limit of {MAX_TOOL_CALLS} tool calls reached"}
+        else:
+            try:
+                args = json.loads(tc.function.arguments or "{}")
+            except ValueError:
+                args = {}
+            result = inv.call_tool(tc.function.name, args)
+        messages.append({"role": "tool", "tool_call_id": tc.id, "content": json.dumps(result, ensure_ascii=False)})
+
+    inv.data["llm_calls"] += 1  # call 2 of 2: tools are no longer offered, so the model must summarise
+    try:
+        second = llm.chat(messages, tools=None)
+    except llm.LLMError as e:
+        inv.data["summary_fallback_reason"] = str(e).splitlines()[0][:160]
+        return None, None
+    inv.note_model(second)
+    return second.message.content, second.model
 
 
 def gather_fixed_order(inv: Investigation):
@@ -159,23 +175,28 @@ def template_summary(inv: Investigation) -> Summary:
                    evidence_missing=missing)
 
 
-def summarise(inv: Investigation, llm_text: str | None) -> tuple[Summary, str]:
-    """Parse the LLM's summary (asking once more if needed), else use the template. Returns (summary, by)."""
-    try:
-        if llm_text:
-            try:
-                return Summary.model_validate(llm.parse_json(llm_text)), f"llm:{llm.model_name()}"
-            except (ValueError, ValidationError):
-                pass
-        evidence = json.dumps({"incident": brief(inv.inc), "tool_results": inv.results}, ensure_ascii=False)
-        inv.data["llm_calls"] += 1
-        data = llm.chat_json([{"role": "system", "content": SYSTEM_PROMPT},
-                              {"role": "user", "content": "Evidence (tool results only):\n" + evidence}])
-        data.pop("_llm_ms", None)
-        return Summary.model_validate(data), f"llm:{llm.model_name()}"
-    except (llm.LLMError, ValidationError) as e:
-        inv.data["summary_fallback_reason"] = str(e).splitlines()[0][:160]
-        return template_summary(inv), "template (LLM unavailable)"
+def summarise(inv: Investigation, llm_text: str | None, model: str | None, may_call_llm: bool) -> tuple[Summary, str]:
+    """Use the LLM's summary text if valid; otherwise (only if the 2-call budget allows) ask once;
+    otherwise build the template from the tool results. Returns (summary, who wrote it)."""
+    if llm_text:
+        try:
+            return Summary.model_validate(llm.parse_json(llm_text)), f"llm:{model or llm.model_name()}"
+        except (ValueError, ValidationError):
+            inv.data["summary_fallback_reason"] = "LLM summary was not valid JSON"
+    if may_call_llm and inv.data["llm_calls"] < MAX_LLM_CALLS:
+        try:
+            evidence = json.dumps({"incident": brief(inv.inc), "tool_results": inv.results}, ensure_ascii=False)
+            inv.data["llm_calls"] += 1
+            data = llm.chat_json([{"role": "system", "content": SYSTEM_PROMPT},
+                                  {"role": "user", "content": "Evidence (tool results only):\n" + evidence}])
+            answered_by = data.pop("_llm_model", None) or llm.model_name()
+            if data.pop("_llm_note", None):
+                inv.data.setdefault("llm_notes", []).append(f"summary answered by {answered_by}")
+            data.pop("_llm_ms", None)
+            return Summary.model_validate(data), f"llm:{answered_by}"
+        except (llm.LLMError, ValidationError) as e:
+            inv.data["summary_fallback_reason"] = str(e).splitlines()[0][:160]
+    return template_summary(inv), "template (LLM unavailable)"
 
 
 def run_investigation(session_factory, incident_id: str):
@@ -188,19 +209,20 @@ def run_investigation(session_factory, incident_id: str):
         inv = Investigation(db, inc)  # note: nothing here ever writes inc.severity (tested)
         try:
             try:
-                llm_text = gather_with_tool_calling(inv)
+                llm_text, model = gather_with_tool_calling(inv)
                 inv.data["path"] = "tool_calling"
+                may_call_llm = False  # both calls used (or call 2 failed): no third call
             except llm.LLMError as e:
                 inv.data["path"] = "fixed_order"
                 inv.data["fallback_reason"] = str(e).splitlines()[0][:160]
                 inv.save("investigation_path", f"Tool calling unavailable ({inv.data['fallback_reason']}) "
                                                "— calling all 4 tools in fixed order")
-                llm_text = None
+                llm_text, model, may_call_llm = None, None, True  # call 1 failed: one summary call left
                 inv.calls.clear()
                 inv.results.clear()
                 gather_fixed_order(inv)
 
-            summary, summary_by = summarise(inv, llm_text)
+            summary, summary_by = summarise(inv, llm_text, model, may_call_llm)
             found = sop_ids_found(inv)
             if summary.sop_id not in found:  # the SOP id must come from the search results
                 if summary.sop_id:

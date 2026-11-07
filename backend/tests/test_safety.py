@@ -116,4 +116,5 @@ def test_llm_retries_once_on_invalid_json(monkeypatch):
 
     monkeypatch.setattr(llm, "_client", lambda *args: FakeClient())
     monkeypatch.setenv("LLM_MODEL", "fake-model")
-    assert llm.chat_json([{"role": "user", "content": "hi"}])["ok"] is True
+    # the JSON retry is opt-in now (only the click-triggered handover summary uses it)
+    assert llm.chat_json([{"role": "user", "content": "hi"}], json_retry=True)["ok"] is True

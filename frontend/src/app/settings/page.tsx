@@ -62,6 +62,8 @@ export default function SettingsPage() {
                 <Row label="Speech-to-text" value={`Gnani Prisma (${health.stt_model})`} />
                 <Row label="Text-to-speech" value={`Gnani Timbre (${health.tts_model}), voice ${health.tts_voice}`} />
                 <Row label="LLM" value={health.llm_model} />
+                <Row label="LLM if rate-limited" value={health.llm_fallback_model ?? "none (keyword fallback)"} />
+                <Row label="LLM request limit" value={`${health.llm_max_rpm} per minute`} />
                 <Row label="Data" value={health.data} />
               </>
             ) : (

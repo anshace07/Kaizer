@@ -97,6 +97,8 @@ def health():
         "tts_model": tts.model(),
         "tts_voice": tts.voice(),
         "llm_model": llm.model_name(),
+        "llm_fallback_model": llm.fallback_model_name(),
+        "llm_max_rpm": int(os.getenv("LLM_MAX_RPM") or llm.DEFAULT_MAX_RPM),
         "demo_reset_enabled": demo_reset_enabled(),
     }
 
@@ -246,6 +248,8 @@ def create_incident(body: IncidentCreate, background: BackgroundTasks, db: Sessi
         inc.duplicate_status = "pending"
     # Timeline: every step is a timestamped event, so the decision can be audited later.
     log = [("created", f"Incident reported · extractor: {extractor}")]
+    if analysis.get("llm_note"):
+        log.append(("llm_model", f"LLM: {analysis['llm_note']}"))
     if analysis.get("fallback_reason"):
         log.append(("llm_fallback", analysis["fallback_reason"]))
     if extraction.get("confirmation_required"):

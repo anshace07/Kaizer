@@ -129,7 +129,8 @@ def handover_summary(db) -> dict:
         try:
             data = llm.chat_json([{"role": "system", "content": SUMMARY_PROMPT},
                                   {"role": "user", "content": json.dumps(facts, ensure_ascii=False)}],
-                                 timeout=SUMMARY_TIMEOUT_SECONDS, retry_on_timeout=True)
+                                 timeout=SUMMARY_TIMEOUT_SECONDS, retry_on_timeout=True, json_retry=True)
+            by = f"llm:{data.get('_llm_model') or llm.model_name()}"  # the model that actually answered
             text, spoken = str(data.get("summary", "")).strip(), str(data.get("spoken", "")).strip()
             if not text or not spoken:
                 reason = "LLM returned an empty summary"
