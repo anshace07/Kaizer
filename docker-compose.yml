@@ -1,0 +1,40 @@
+# PlantPulse AI — whole app with one command:  docker compose up --build
+# Then open http://localhost:3000   (backend API: http://localhost:8000/docs)
+name: plantpulse
+
+services:
+  backend:
+    build:
+      context: .                     # repo root: the backend reads ../data
+      dockerfile: backend/Dockerfile
+    env_file: backend/.env           # your keys stay on your machine; they are never copied into the image
+    environment:
+      PLANTPULSE_DB_PATH: /app/db/plantpulse.db
+    ports:
+      - "8000:8000"
+    volumes:
+      - plantpulse-db:/app/db                 # SQLite database (survives restarts)
+      - plantpulse-cache:/app/backend/cache   # Gnani STT/TTS cache (saves credits)
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000   # where the BROWSER finds the backend
+    ports:
+      - "3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  plantpulse-db:
+  plantpulse-cache:
