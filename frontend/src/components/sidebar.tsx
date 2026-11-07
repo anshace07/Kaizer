@@ -9,7 +9,7 @@ const LINKS = [
   { href: "/report", label: "Report Incident", icon: Mic },
   { href: "/incidents", label: "Incidents", icon: ClipboardList },
   { href: "/handover", label: "Shift Handover", icon: Users },
-  { href: "/performance", label: "AI Performance", icon: Gauge },
+  { href: "/machine-insights", label: "Machine Insights", icon: Gauge },
 ];
 
 function NavLink({ href, label, icon: Icon, active }: { href: string; label: string; icon: typeof Mic; active: boolean }) {
@@ -51,7 +51,7 @@ export function Sidebar() {
 
       <div className="mt-auto space-y-3">
         <NavLink href="/settings" label="Settings" icon={Settings} active={isActive("/settings")} />
-        <p className="px-3.5 text-xs text-slate-500">All data is synthetic.</p>
+        <p className="px-3.5 text-xs text-slate-500"></p>
       </div>
     </aside>
   );

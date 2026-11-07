@@ -10,6 +10,7 @@
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
+
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -18,11 +19,13 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -39,6 +42,7 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -48,65 +52,97 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/* =========================================
+   PLANTPULSE AI — LAVENDER THEME
+========================================= */
+
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Main dashboard background */
+  --background: #b2b0b9;
+  --foreground: #1e293b;
+
+  /* White cards */
+  --card: #ffffff;
+  --card-foreground: #17172b;
+
+  /* Popovers */
+  --popover: #ffffff;
+  --popover-foreground: #17172b;
+
+  /* Primary purple */
+  --primary: #7045e8;
+  --primary-foreground: #ffffff;
+
+  /* Secondary */
+  --secondary: #f1edfc;
+  --secondary-foreground: #49358b;
+
+  /* Muted */
+  --muted: #f5f3fa;
+  --muted-foreground: #77758c;
+
+  /* Accent */
+  --accent: #eee9fc;
+  --accent-foreground: #5936bd;
+
+  /* Status */
+  --destructive: #dc3545;
+
+  /* Borders and inputs */
+  --border: #e9e5f3;
+  --input: #e9e5f3;
+  --ring: #7045e8;
+
+  --radius: 0.875rem;
+
+  /* Dark purple sidebar */
+  --sidebar: #1d1a30;
+  --sidebar-foreground: #e9e6f5;
+  --sidebar-primary: #7045e8;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #302849;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #302b42;
+  --sidebar-ring: #9b80ff;
+
+  /* Shadows */
+  --pp-shadow:
+    0 2px 5px rgb(30 27 46 / 5%),
+    0 8px 24px rgb(30 27 46 / 6%);
 }
+
+/* =========================================
+   DARK MODE
+========================================= */
 
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
+
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
+
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
+
   --primary: oklch(0.922 0 0);
   --primary-foreground: oklch(0.205 0 0);
+
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
+
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
+
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
+
   --destructive: oklch(0.704 0.191 22.216);
+
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -117,50 +153,89 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+/* =========================================
+   BASE STYLES
+========================================= */
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
+  html,
   body {
-    @apply bg-background text-foreground;
+    background-color: #dad2e8;
+    min-height: 100%;
   }
-  html {
-    @apply font-sans;
+
+  body {
+    color: #1e293b;
   }
-}
-/* PlantPulse look (from design/mockup.png): purple accent, soft lavender page, white cards, soft shadows. */
-:root {
-  --primary: #6d4ae8;
-  --primary-foreground: #ffffff;
-  --ring: #6d4ae8;
-  --background: #f5f4fb;
-  --border: #ebe8f4;
-  --muted: #f1eff8;
-  --radius: 0.875rem;
-  --pp-shadow: 0 1px 2px rgb(30 27 46 / 0.04), 0 6px 20px -6px rgb(30 27 46 / 0.10);
 }
 
-/* Critical alarm: soft red pulse around the banner. */
+
+/* =========================================
+   PLANTPULSE ANIMATIONS
+========================================= */
+
 @keyframes pp-alarm-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgb(220 38 38 / 0.45); }
-  50% { box-shadow: 0 0 0 12px rgb(220 38 38 / 0); }
-}
-.pp-alarm-pulse { animation: pp-alarm-pulse 1.8s ease-in-out infinite; }
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(220 38 38 / 0.45);
+  }
 
-/* Mic button: gentle breathing glow when idle, stronger ring while recording. */
+  50% {
+    box-shadow: 0 0 0 12px rgb(220 38 38 / 0);
+  }
+}
+
+.pp-alarm-pulse {
+  animation: pp-alarm-pulse 1.8s ease-in-out infinite;
+}
+
+/* Microphone glow */
+
 @keyframes pp-mic-glow {
-  0%, 100% { box-shadow: 0 0 0 14px rgb(109 74 232 / 0.10), 0 12px 40px -8px rgb(109 74 232 / 0.55); }
-  50% { box-shadow: 0 0 0 22px rgb(109 74 232 / 0.06), 0 12px 48px -6px rgb(109 74 232 / 0.65); }
-}
-.pp-mic-glow { animation: pp-mic-glow 3s ease-in-out infinite; }
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 14px rgb(109 74 232 / 0.10),
+      0 12px 40px -8px rgb(109 74 232 / 0.55);
+  }
 
-/* Newest incident row flashes for 3 seconds. */
-@keyframes pp-row-flash {
-  0%, 60% { background-color: rgb(237 233 254); }
-  100% { background-color: transparent; }
+  50% {
+    box-shadow:
+      0 0 0 22px rgb(109 74 232 / 0.06),
+      0 12px 48px -6px rgb(109 74 232 / 0.65);
+  }
 }
-.pp-row-flash { animation: pp-row-flash 3s ease-out; }
+
+.pp-mic-glow {
+  animation: pp-mic-glow 3s ease-in-out infinite;
+}
+
+/* New incident row highlight */
+
+@keyframes pp-row-flash {
+  0%,
+  60% {
+    background-color: #eee9fc;
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+.pp-row-flash {
+  animation: pp-row-flash 3s ease-out;
+}
+
+/* Respect reduced-motion preferences */
 
 @media (prefers-reduced-motion: reduce) {
-  .pp-alarm-pulse, .pp-mic-glow, .pp-row-flash { animation: none; }
+  .pp-alarm-pulse,
+  .pp-mic-glow,
+  .pp-row-flash {
+    animation: none;
+  }
 }
