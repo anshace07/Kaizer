@@ -178,6 +178,8 @@ export function VoiceRecorder({
 
         setRecording(false);
         setLevel(0);
+        setSeconds(0);
+
         setError("Recording failed. Please try again.");
       };
 
@@ -220,9 +222,11 @@ export function VoiceRecorder({
   }
 
   return (
-    <div className="flex w-full flex-col items-center gap-4">
+    <div className="flex w-full min-w-0 flex-col items-center gap-4">
+
       {/* MICROPHONE BUTTON */}
-      <div className="relative flex h-44 w-44 items-center justify-center">
+      <div className="relative flex h-36 w-36 items-center justify-center sm:h-44 sm:w-44">
+
         <span className="absolute inset-0 rounded-full bg-gradient-to-b from-violet-100 to-violet-50" />
 
         {recording && (
@@ -234,7 +238,8 @@ export function VoiceRecorder({
           onClick={recording ? stop : start}
           disabled={disabled}
           aria-label={recording ? "Stop recording" : "Start recording"}
-          className={`relative flex h-28 w-28 items-center justify-center rounded-full text-white transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60 ${
+          aria-pressed={recording}
+          className={`relative flex h-24 w-24 touch-manipulation items-center justify-center rounded-full text-white transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60 sm:h-28 sm:w-28 ${
             recording
               ? "scale-105 bg-gradient-to-b from-red-500 to-red-600"
               : "pp-mic-glow bg-gradient-to-b from-[#8b6cf6] to-[#5b3bd4] hover:scale-105"
@@ -250,15 +255,19 @@ export function VoiceRecorder({
           }
         >
           {recording ? (
-            <Square className="h-10 w-10" fill="currentColor" />
+            <Square className="h-8 w-8 sm:h-10 sm:w-10" fill="currentColor" />
           ) : (
-            <Mic className="h-12 w-12" />
+            <Mic className="h-10 w-10 sm:h-12 sm:w-12" />
           )}
         </button>
+
       </div>
 
       {/* STATUS */}
-      <p className="text-lg font-bold text-slate-900">
+      <p
+        aria-live="polite"
+        className="max-w-full break-words px-2 text-center text-base font-bold text-slate-900 sm:text-lg"
+      >
         {recording
           ? "Recording… tap to stop"
           : statusText ?? "Tap to Speak"}
@@ -266,19 +275,23 @@ export function VoiceRecorder({
 
       {/* RECORDING TIMER */}
       {recording && (
-        <div className="flex w-64 flex-col items-center gap-2">
+        <div className="flex w-full max-w-64 flex-col items-center gap-2 px-2">
+
           <p className="font-mono text-sm font-semibold tabular-nums text-red-600">
             ● {seconds.toFixed(1)} s / {MAX_SECONDS} s
           </p>
 
           <div className="h-2.5 w-full overflow-hidden rounded-full bg-red-100">
+
             <div
               className="h-full rounded-full bg-gradient-to-r from-red-400 to-red-600 transition-[width] duration-75"
               style={{
                 width: `${Math.max(3, level * 100)}%`,
               }}
             />
+
           </div>
+
         </div>
       )}
 
@@ -296,18 +309,22 @@ export function VoiceRecorder({
         size="lg"
         disabled={disabled || recording}
         onClick={() => fileInput.current?.click()}
-        className="mt-1 rounded-xl border-violet-200 bg-white px-5"
+        className="mt-1 w-full max-w-xs touch-manipulation rounded-xl border-violet-200 bg-white px-5 sm:w-auto"
       >
-        <Upload className="mr-2 h-4 w-4" />
+        <Upload className="mr-2 h-4 w-4 shrink-0" />
         Upload audio file
       </Button>
 
       {/* ERROR */}
       {error && (
-        <p className="max-w-md text-center text-sm font-medium text-red-600">
+        <p
+          role="alert"
+          className="w-full max-w-md break-words px-2 text-center text-sm font-medium leading-relaxed text-red-600"
+        >
           {error}
         </p>
       )}
+
     </div>
   );
 }

@@ -239,3 +239,116 @@
     animation: none;
   }
 }
+
+/* =========================================
+   KAIZER — RESPONSIVE LAYOUT
+========================================= */
+
+/* Prevent horizontal overflow */
+html {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+body {
+  width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+}
+
+/* Make media responsive */
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+img,
+video {
+  height: auto;
+}
+
+/* Keep form controls inside their containers */
+input,
+textarea,
+select {
+  max-width: 100%;
+}
+
+/* Allow long content to wrap */
+main {
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+/* Allow tables to scroll horizontally when needed */
+.table-responsive {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* =========================================
+   TABLET & MOBILE
+========================================= */
+
+@media (max-width: 1023px) {
+  /* Sidebar becomes a top navigation bar */
+  body > div {
+    flex-direction: column;
+  }
+
+  /* Prevent content from extending beyond the screen */
+  main {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+}
+
+/* =========================================
+   MOBILE SCREENS
+========================================= */
+
+@media (max-width: 639px) {
+  /* Better touch interaction */
+  button,
+  a,
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+
+  /* Prevent iOS Safari from zooming into inputs */
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  /* Reduce oversized headings */
+  main h1 {
+    overflow-wrap: anywhere;
+  }
+
+  /* Ensure long text doesn't break layouts */
+  main p,
+  main span {
+    overflow-wrap: break-word;
+  }
+}
+
+/* =========================================
+   SMALL MOBILE SCREENS
+========================================= */
+
+@media (max-width: 375px) {
+  main {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}

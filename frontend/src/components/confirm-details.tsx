@@ -157,8 +157,7 @@ export function ConfirmDetails({
     }
   }
 
-  // withoutMachine: only offered when a safety rule fired — a danger
-  // report must never be blocked just because the machine is unknown.
+  // A danger report must never be blocked just because the machine is unknown.
   async function createIncident(withoutMachine = false) {
     if (creating) return;
 
@@ -210,11 +209,13 @@ export function ConfirmDetails({
   }
 
   return (
-    <div className="min-h-full space-y-6 rounded-2xl bg-[#f5f2ff] p-2 sm:p-4">
+    <div className="min-h-full min-w-0 space-y-5 rounded-2xl bg-[#f5f2ff] p-2 sm:space-y-6 sm:p-4">
 
       {/* HEADER */}
-      <div>
-        <div className="mb-2 flex items-center gap-2">
+      <header className="min-w-0">
+
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+
           <span className="rounded-full bg-violet-100 px-3 py-1 text-[11px] font-bold tracking-wide text-violet-700">
             AI UNDERSTANDING
           </span>
@@ -223,61 +224,77 @@ export function ConfirmDetails({
             <span className="h-2 w-2 rounded-full bg-emerald-500" />
             Analysis complete
           </span>
+
         </div>
 
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
           Confirm Details
         </h1>
 
-        <p className="mt-2 text-sm text-slate-500">
+        <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-500">
           We&apos;ve understood your report like this. Please confirm
           that the extracted details are correct.
         </p>
-      </div>
+
+      </header>
 
       {/* SAFETY RULE BOX */}
       {ruleLocked && (
-        <div className="flex gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-red-800">
+        <div className="flex min-w-0 items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-3 text-red-800 sm:p-4">
+
           <ShieldAlert className="mt-0.5 h-5 w-5 shrink-0" />
-          <div className="space-y-1 text-sm">
-            <p className="font-bold">
+
+          <div className="min-w-0 space-y-2 text-sm">
+
+            <p className="font-bold leading-relaxed">
               Safety rule triggered → Critical (simulated alert will be raised)
             </p>
+
             {analysis.rule_hits.map((hit) => (
-              <p key={hit.rule_id}>
-                Rule {hit.rule_id} ({hit.rule_name}): &ldquo;{hit.keyword}&rdquo; found in {hit.source}
+              <p key={hit.rule_id} className="break-words leading-relaxed">
+                Rule {hit.rule_id} ({hit.rule_name}): &ldquo;
+                {hit.keyword}&rdquo; found in {hit.source}
               </p>
             ))}
-            <p className="text-xs text-red-700">
+
+            <p className="text-xs leading-relaxed text-red-700">
               Fixed safety rules cannot be lowered by the AI or on this screen.
             </p>
+
           </div>
         </div>
       )}
 
       {/* LLM FALLBACK BOX */}
       {analysis.fallback_reason && (
-        <div className="flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+        <div className="flex min-w-0 items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm leading-relaxed text-amber-900">
+
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          {analysis.fallback_reason}
+
+          <p className="min-w-0 break-words">
+            {analysis.fallback_reason}
+          </p>
+
         </div>
       )}
 
       {/* CONFIRMATION CARD */}
-      <Card className="overflow-hidden rounded-3xl border border-violet-100 bg-white shadow-sm">
-        <CardContent className="p-4 sm:p-6">
+      <Card className="min-w-0 overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-sm sm:rounded-3xl">
 
-          <div className="grid gap-5 lg:grid-cols-2">
+        <CardContent className="min-w-0 p-3 sm:p-6">
+
+          <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-5">
 
             {/* LEFT: INCIDENT DETAILS */}
-            <div className="rounded-2xl border border-slate-100 bg-[#fcfbff] p-5 sm:p-6">
+            <div className="min-w-0 rounded-2xl border border-slate-100 bg-[#fcfbff] p-3 sm:p-5 md:p-6">
 
-              <div className="mb-6 flex items-center gap-2">
-                <div className="rounded-xl bg-violet-100 p-2">
+              <div className="mb-5 flex items-center gap-2 sm:mb-6">
+
+                <div className="shrink-0 rounded-xl bg-violet-100 p-2">
                   <FileText className="h-5 w-5 text-violet-700" />
                 </div>
 
-                <div>
+                <div className="min-w-0">
                   <h2 className="font-bold text-slate-900">
                     Incident Details
                   </h2>
@@ -286,25 +303,30 @@ export function ConfirmDetails({
                     AI-extracted information
                   </p>
                 </div>
+
               </div>
 
               {/* MACHINE CONFIRMATION */}
               {confirmationRequired && (
-                <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <div className="mb-5 min-w-0 rounded-xl border border-amber-200 bg-amber-50 p-3 sm:mb-6 sm:p-4">
 
-                  <div className="flex items-start gap-2">
+                  <div className="flex min-w-0 items-start gap-2">
+
                     <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
 
-                    <div>
+                    <div className="min-w-0">
+
                       <h3 className="text-sm font-bold text-amber-900">
                         Confirm the machine
                       </h3>
 
-                      <p className="mt-1 text-sm leading-6 text-amber-800">
+                      <p className="mt-1 break-words text-sm leading-6 text-amber-800">
                         {extraction.confirmation_question ||
                           "Which machine are you referring to?"}
                       </p>
+
                     </div>
+
                   </div>
 
                   <Button
@@ -312,7 +334,7 @@ export function ConfirmDetails({
                     variant="outline"
                     size="sm"
                     onClick={playQuestion}
-                    className="mt-3 border-amber-300 bg-white text-amber-800 hover:bg-amber-100"
+                    className="mt-3 w-full border-amber-300 bg-white text-amber-800 hover:bg-amber-100 sm:w-auto"
                   >
                     <Volume2 className="mr-2 h-4 w-4" />
                     Play question
@@ -320,12 +342,14 @@ export function ConfirmDetails({
 
                   {/* MACHINE CANDIDATES */}
                   {machineCandidates.length > 0 && (
-                    <div className="mt-4">
+                    <div className="mt-4 min-w-0">
+
                       <p className="mb-2 text-xs font-semibold text-amber-900">
                         Possible machines
                       </p>
 
-                      <div className="flex flex-wrap gap-2">
+                      <div className="grid grid-cols-1 gap-2 min-[380px]:grid-cols-2">
+
                         {machineCandidates.map((candidateId) => {
                           const candidate = machines.find(
                             (machine) => machine.id === candidateId
@@ -342,26 +366,31 @@ export function ConfirmDetails({
                               type="button"
                               aria-pressed={isSelected}
                               onClick={() => selectMachine(candidateId)}
-                              className={`rounded-lg border px-4 py-2 text-sm font-semibold transition ${
+                              className={`min-w-0 rounded-lg border px-3 py-2.5 text-left text-sm font-semibold transition ${
                                 isSelected
                                   ? "border-violet-600 bg-violet-600 text-white"
                                   : "border-violet-200 bg-white text-violet-800 hover:border-violet-400 hover:bg-violet-50"
                               }`}
                             >
-                              {candidate.id}
+                              <span className="block break-words">
+                                {candidate.id}
+                              </span>
 
-                              <span className="ml-1 text-xs font-normal">
+                              <span className="mt-0.5 block break-words text-xs font-normal opacity-80">
                                 {candidate.name}
                               </span>
+
                             </button>
                           );
                         })}
+
                       </div>
                     </div>
                   )}
 
                   {/* ALL MACHINES DROPDOWN */}
-                  <div className="mt-4">
+                  <div className="mt-4 min-w-0">
+
                     <label className="mb-2 block text-xs font-semibold text-amber-900">
                       Or select from all machines
                     </label>
@@ -371,7 +400,7 @@ export function ConfirmDetails({
                       onChange={(event) =>
                         selectMachine(event.target.value)
                       }
-                      className="w-full rounded-lg border border-amber-300 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:ring-2 focus:ring-violet-200"
+                      className="w-full min-w-0 rounded-lg border border-amber-300 bg-white px-3 py-3 text-base text-slate-800 outline-none focus:ring-2 focus:ring-violet-200 sm:text-sm"
                     >
                       <option value="">
                         Select the correct machine
@@ -385,7 +414,9 @@ export function ConfirmDetails({
                           {machine.id} - {machine.name}
                         </option>
                       ))}
+
                     </select>
+
                   </div>
 
                   {machineMissing && (
@@ -399,15 +430,18 @@ export function ConfirmDetails({
                       Selected machine: {machineId}
                     </p>
                   )}
+
                 </div>
               )}
 
-              <div className="space-y-6">
+              {/* INCIDENT INFORMATION */}
+              <div className="min-w-0 space-y-5 sm:space-y-6">
 
                 {/* MACHINE */}
-                <div className="grid grid-cols-[145px_1fr] items-center gap-3">
+                <div className="flex min-w-0 flex-col gap-2 sm:grid sm:grid-cols-[130px_minmax(0,1fr)] sm:items-center sm:gap-3">
+
                   <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <Cpu className="h-4 w-4 text-violet-600" />
+                    <Cpu className="h-4 w-4 shrink-0 text-violet-600" />
                     Machine ID
                   </div>
 
@@ -417,7 +451,7 @@ export function ConfirmDetails({
                       onChange={(event) =>
                         selectMachine(event.target.value)
                       }
-                      className="w-full rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-200"
+                      className="w-full min-w-0 rounded-lg border border-violet-200 bg-white px-3 py-3 text-base outline-none focus:ring-2 focus:ring-violet-200 sm:text-sm"
                     >
                       <option value="">
                         Select machine
@@ -431,18 +465,21 @@ export function ConfirmDetails({
                           {machine.id} - {machine.name}
                         </option>
                       ))}
+
                     </select>
                   ) : (
-                    <span className="font-bold text-slate-900">
+                    <span className="break-words font-bold text-slate-900">
                       {machineId || "Not identified"}
                     </span>
                   )}
+
                 </div>
 
                 {/* INCIDENT TYPE */}
-                <div className="grid grid-cols-[145px_1fr] items-center gap-3">
+                <div className="flex min-w-0 flex-col gap-2 sm:grid sm:grid-cols-[130px_minmax(0,1fr)] sm:items-center sm:gap-3">
+
                   <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <AlertTriangle className="h-4 w-4 shrink-0 text-amber-600" />
                     Incident
                   </div>
 
@@ -452,7 +489,7 @@ export function ConfirmDetails({
                       onChange={(event) =>
                         setIncidentType(event.target.value)
                       }
-                      className="w-full rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-200"
+                      className="w-full min-w-0 rounded-lg border border-violet-200 bg-white px-3 py-3 text-base outline-none focus:ring-2 focus:ring-violet-200 sm:text-sm"
                     >
                       {Object.entries(INCIDENT_TYPES).map(([value, label]) => (
                         <option key={value} value={value}>
@@ -461,17 +498,19 @@ export function ConfirmDetails({
                       ))}
                     </select>
                   ) : (
-                    <span className="font-bold text-slate-900">
+                    <span className="break-words font-bold text-slate-900">
                       {INCIDENT_TYPES[incidentType] ??
                         capitalize(incidentType.replaceAll("_", " "))}
                     </span>
                   )}
+
                 </div>
 
                 {/* LOCATION */}
-                <div className="grid grid-cols-[145px_1fr] items-center gap-3">
+                <div className="flex min-w-0 flex-col gap-2 sm:grid sm:grid-cols-[130px_minmax(0,1fr)] sm:items-center sm:gap-3">
+
                   <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <MapPin className="h-4 w-4 text-violet-600" />
+                    <MapPin className="h-4 w-4 shrink-0 text-violet-600" />
                     Location
                   </div>
 
@@ -481,63 +520,69 @@ export function ConfirmDetails({
                       onChange={(event) =>
                         setLocation(event.target.value)
                       }
-                      className="w-full rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-200"
+                      className="w-full min-w-0 rounded-lg border border-violet-200 bg-white px-3 py-3 text-base outline-none focus:ring-2 focus:ring-violet-200 sm:text-sm"
                     />
                   ) : (
-                    <span className="font-bold text-slate-900">
+                    <span className="break-words font-bold text-slate-900">
                       {location ||
                         selectedMachine?.location ||
                         "Not identified"}
                     </span>
                   )}
+
                 </div>
 
                 {/* SEVERITY */}
-                <div className="grid grid-cols-[145px_1fr] items-center gap-3">
+                <div className="flex min-w-0 flex-col gap-2 sm:grid sm:grid-cols-[130px_minmax(0,1fr)] sm:items-start sm:gap-3">
+
                   <div className="flex items-center gap-2 text-sm text-slate-500">
-                    <ShieldCheck className="h-4 w-4 text-violet-600" />
+                    <ShieldCheck className="h-4 w-4 shrink-0 text-violet-600" />
                     Severity
                   </div>
 
-                  <div className="space-y-1">
-                  {editing && !ruleLocked ? (
-                    <select
-                      value={severity}
-                      onChange={(event) =>
-                        setSeverity(
-                          event.target.value as Severity
-                        )
-                      }
-                      className="w-full rounded-lg border border-violet-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-violet-200"
-                    >
-                      {(
-                        ["low", "medium", "high", "critical"] as Severity[]
-                      ).map((item) => (
-                        <option key={item} value={item}>
-                          {capitalize(item)}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <span
-                      className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-bold ${severityStyles[severity]}`}
-                    >
-                      {capitalize(severity)}
-                    </span>
-                  )}
-                  <p className="text-xs text-slate-500">
-                    Decided by:{" "}
-                    {DECIDED_BY[analysis.severity_decided_by] ??
-                      analysis.severity_decided_by}
-                    {extraction.suggested_severity &&
-                      ` · AI suggested ${extraction.suggested_severity}`}
-                    {ruleLocked && " · locked by safety rule"}
-                  </p>
+                  <div className="min-w-0 space-y-1">
+
+                    {editing && !ruleLocked ? (
+                      <select
+                        value={severity}
+                        onChange={(event) =>
+                          setSeverity(
+                            event.target.value as Severity
+                          )
+                        }
+                        className="w-full min-w-0 rounded-lg border border-violet-200 bg-white px-3 py-3 text-base outline-none focus:ring-2 focus:ring-violet-200 sm:text-sm"
+                      >
+                        {(
+                          ["low", "medium", "high", "critical"] as Severity[]
+                        ).map((item) => (
+                          <option key={item} value={item}>
+                            {capitalize(item)}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <span
+                        className={`inline-flex w-fit items-center rounded-full border px-3 py-1 text-xs font-bold ${severityStyles[severity]}`}
+                      >
+                        {capitalize(severity)}
+                      </span>
+                    )}
+
+                    <p className="break-words text-xs leading-relaxed text-slate-500">
+                      Decided by:{" "}
+                      {DECIDED_BY[analysis.severity_decided_by] ??
+                        analysis.severity_decided_by}
+                      {extraction.suggested_severity &&
+                        ` · AI suggested ${extraction.suggested_severity}`}
+                      {ruleLocked && " · locked by safety rule"}
+                    </p>
+
                   </div>
                 </div>
 
                 {/* SYMPTOMS */}
-                <div className="border-t border-slate-100 pt-4">
+                <div className="min-w-0 border-t border-slate-100 pt-4">
+
                   <p className="mb-2 text-xs font-semibold text-slate-500">
                     Reported Symptoms
                   </p>
@@ -549,31 +594,37 @@ export function ConfirmDetails({
                       onChange={(event) =>
                         setSymptoms(event.target.value)
                       }
-                      className="w-full resize-none rounded-lg border border-violet-200 bg-white p-3 text-sm outline-none focus:ring-2 focus:ring-violet-200"
+                      className="w-full min-w-0 resize-none rounded-lg border border-violet-200 bg-white p-3 text-base outline-none focus:ring-2 focus:ring-violet-200 sm:text-sm"
                     />
                   ) : (
-                    <p className="text-sm leading-6 text-slate-700">
+                    <p className="break-words text-sm leading-6 text-slate-700">
                       {symptoms || "No symptoms extracted."}
                     </p>
                   )}
+
                 </div>
+
               </div>
             </div>
 
             {/* RIGHT: ORIGINAL REPORT */}
-            <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-[#faf8ff] to-[#f4efff] p-5 sm:p-6">
+            <div className="min-w-0 rounded-2xl border border-violet-100 bg-gradient-to-br from-[#faf8ff] to-[#f4efff] p-3 sm:p-5 md:p-6">
 
-              <div className="mb-6 flex items-center gap-3">
-                <div className="rounded-xl bg-violet-100 p-2.5">
+              <div className="mb-5 flex min-w-0 items-center gap-3 sm:mb-6">
+
+                <div className="shrink-0 rounded-xl bg-violet-100 p-2.5">
+
                   {isTyped ? (
                     <Keyboard className="h-5 w-5 text-violet-700" />
                   ) : (
                     <AudioLines className="h-5 w-5 text-violet-700" />
                   )}
+
                 </div>
 
-                <div>
-                  <h2 className="font-bold text-slate-900">
+                <div className="min-w-0">
+
+                  <h2 className="break-words font-bold text-slate-900">
                     {reportTitle}
                   </h2>
 
@@ -582,22 +633,26 @@ export function ConfirmDetails({
                       ? "Entered manually"
                       : "Transcribed by Gnani Prisma"}
                   </p>
+
                 </div>
+
               </div>
 
-              {/* AUDIO WAVEFORM ONLY */}
+              {/* AUDIO WAVEFORM */}
               {!isTyped && (
-                <div className="mb-5 flex h-16 items-center gap-1 overflow-hidden rounded-xl border border-violet-100 bg-white/80 px-4">
+                <div className="mb-5 flex h-16 min-w-0 items-center gap-1 overflow-hidden rounded-xl border border-violet-100 bg-white/80 px-2 sm:px-4">
+
                   {Array.from({ length: 40 }, (_, index) => (
                     <span
                       key={index}
-                      className="w-1 flex-1 rounded-full bg-violet-500"
+                      className="min-w-0 flex-1 rounded-full bg-violet-500"
                       style={{
                         height: `${15 + ((index * 17) % 35)}px`,
                         opacity: 0.45 + (index % 5) * 0.1,
                       }}
                     />
                   ))}
+
                 </div>
               )}
 
@@ -605,48 +660,54 @@ export function ConfirmDetails({
                 {isTyped ? "Your report" : "Voice transcription"}
               </p>
 
-              <div className="rounded-xl border border-violet-100 bg-white/80 p-4">
-                <p className="text-sm font-medium leading-7 text-slate-800">
+              <div className="min-w-0 rounded-xl border border-violet-100 bg-white/80 p-3 sm:p-4">
+
+                <p className="break-words text-sm font-medium leading-7 text-slate-800">
                   &quot;{analysis.transcript}&quot;
                 </p>
+
               </div>
 
               {/* LANGUAGE AND EXTRACTOR */}
               <div className="mt-5 flex flex-wrap gap-2">
-                <span className="rounded-lg bg-white px-3 py-2 text-xs font-medium text-slate-600">
+
+                <span className="max-w-full break-words rounded-lg bg-white px-3 py-2 text-xs font-medium text-slate-600">
                   Language:{" "}
                   {capitalize(extraction.language || "Unknown")}
                 </span>
 
-                <span className="rounded-lg bg-white px-3 py-2 text-xs font-medium text-slate-600">
+                <span className="max-w-full break-words rounded-lg bg-white px-3 py-2 text-xs font-medium text-slate-600">
                   Extractor: {analysis.extractor}
                 </span>
+
               </div>
 
               {/* EXTRACTION CONFIDENCE */}
               {extraction.extraction_confidence != null && (
-                <p className="mt-4 text-xs text-slate-400">
+                <p className="mt-4 break-words text-xs text-slate-400">
                   AI-reported extraction confidence:{" "}
                   {Math.round(
                     extraction.extraction_confidence * 100
                   )}%
                 </p>
               )}
+
             </div>
+
           </div>
 
           {/* ERROR */}
           {error && (
             <div
               role="alert"
-              className="mt-5 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+              className="mt-5 break-words rounded-xl border border-red-200 bg-red-50 p-3 text-sm leading-relaxed text-red-700"
             >
               {error}
             </div>
           )}
 
           {/* ACTION BUTTONS */}
-          <div className="mt-6 flex flex-col-reverse justify-center gap-3 sm:flex-row">
+          <div className="mt-6 flex flex-col-reverse justify-center gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
 
             <Button
               variant="outline"
@@ -658,7 +719,7 @@ export function ConfirmDetails({
                 }
               }}
               disabled={creating}
-              className="rounded-xl border-slate-200 bg-white px-8 py-5 font-semibold text-slate-700 hover:bg-slate-50"
+              className="w-full rounded-xl border-slate-200 bg-white px-5 py-5 font-semibold text-slate-700 hover:bg-slate-50 sm:w-auto sm:px-8"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
               {editing ? "Cancel" : "Back"}
@@ -671,7 +732,7 @@ export function ConfirmDetails({
                 setError(null);
               }}
               disabled={creating}
-              className="rounded-xl border-violet-200 bg-white px-8 py-5 font-semibold text-violet-700 hover:bg-violet-50"
+              className="w-full rounded-xl border-violet-200 bg-white px-5 py-5 font-semibold text-violet-700 hover:bg-violet-50 sm:w-auto sm:px-8"
             >
               <Pencil className="mr-2 h-4 w-4" />
               {editing ? "Done Editing" : "Edit"}
@@ -682,9 +743,9 @@ export function ConfirmDetails({
                 variant="outline"
                 onClick={() => createIncident(true)}
                 disabled={creating || editing}
-                className="rounded-xl border-red-300 bg-red-50 px-6 py-5 font-semibold text-red-700 hover:bg-red-100"
+                className="w-full rounded-xl border-red-300 bg-red-50 px-5 py-5 font-semibold text-red-700 hover:bg-red-100 sm:w-auto sm:px-6"
               >
-                <ShieldAlert className="mr-2 h-4 w-4" />
+                <ShieldAlert className="mr-2 h-4 w-4 shrink-0" />
                 Machine not known — report anyway
               </Button>
             )}
@@ -696,7 +757,7 @@ export function ConfirmDetails({
                 editing ||
                 machineMissing
               }
-              className="rounded-xl bg-violet-600 px-8 py-5 font-semibold text-white shadow-lg shadow-violet-200 hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-xl bg-violet-600 px-5 py-5 font-semibold text-white shadow-lg shadow-violet-200 hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:px-8"
             >
               {creating ? (
                 <>
@@ -710,9 +771,10 @@ export function ConfirmDetails({
                 </>
               )}
             </Button>
+
           </div>
 
-          <p className="mt-4 text-center text-[11px] text-slate-400">
+          <p className="mt-4 text-center text-[11px] leading-relaxed text-slate-400">
             Please verify the extracted details before creating the incident.
           </p>
 

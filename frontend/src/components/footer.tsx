@@ -15,8 +15,10 @@ export function Footer() {
   }, []);
 
   return (
-    <footer className="border-t bg-white/60 px-8 py-3 text-xs text-slate-500">
-      Data: synthetic · STT: Prisma v3.0 · TTS: Timbre · LLM: {llm}
+    <footer className="w-full min-w-0 border-t bg-white/60 px-4 py-3 text-center text-xs leading-relaxed text-slate-500 sm:px-6 lg:px-8 lg:text-left">
+      <p className="break-words">
+        Data: synthetic · STT: Prisma v3.0 · TTS: Timbre · LLM: {llm}
+      </p>
     </footer>
   );
 }

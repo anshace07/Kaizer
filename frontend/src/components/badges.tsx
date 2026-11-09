@@ -18,11 +18,11 @@ const STATUS_STYLES: Record<string, string> = {
 export function SeverityBadge({ severity }: { severity: string }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${
+      className={`inline-flex max-w-full items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ring-1 ${
         SEVERITY_STYLES[severity] ?? SEVERITY_STYLES.low
       }`}
     >
-      <span className="size-1.5 rounded-full bg-current" aria-hidden />
+      <span className="size-1.5 shrink-0 rounded-full bg-current" aria-hidden />
       {capitalize(severity)}
     </span>
   );
@@ -31,7 +31,7 @@ export function SeverityBadge({ severity }: { severity: string }) {
 export function StatusBadge({ status }: { status: string }) {
   return (
     <span
-      className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+      className={`inline-flex max-w-full whitespace-nowrap rounded-full px-2.5 py-1 text-xs font-medium ${
         STATUS_STYLES[status] ?? STATUS_STYLES.open
       }`}
     >
@@ -43,6 +43,8 @@ export function StatusBadge({ status }: { status: string }) {
 // Shown when a fixed safety rule fired. The alert is simulated — the app never controls machines.
 export function EscalatedBadge() {
   return (
-    <span className="inline-flex rounded-full bg-red-600 px-2.5 py-0.5 text-xs font-medium text-white">Escalated</span>
+    <span className="inline-flex max-w-full whitespace-nowrap rounded-full bg-red-600 px-2.5 py-1 text-xs font-medium text-white">
+      Escalated
+    </span>
   );
 }
